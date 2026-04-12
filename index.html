@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#1a1916"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="SkyNote"/>
+<meta name="description" content="SkyNote — secure personal notes with password sharing"/>
+<link rel="manifest" href="manifest.json"/>
 <title>SkyNote</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -20,8 +26,13 @@
   --accent:#f0efe9;--accent-fg:#1a1916;--green-light:#064e3b;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--font);background:var(--bg);display:flex;justify-content:center;padding:20px 0 40px;min-height:100vh;transition:background .25s}
-.phone{width:min(390px,100vw);min-height:820px;background:var(--surface);border-radius:44px;border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;position:relative;transition:background .25s,border-color .25s}
+html,body{height:100%;overflow:hidden;background:var(--surface)}
+body{font-family:var(--font);display:flex;justify-content:center;align-items:flex-start;min-height:100vh;min-height:100dvh;transition:background .25s}
+.phone{width:100%;max-width:100vw;height:100vh;height:100dvh;background:var(--surface);border-radius:0;border:none;overflow:hidden;display:flex;flex-direction:column;position:relative;transition:background .25s}
+@media(min-width:500px){
+  html,body{background:var(--bg)}
+  .phone{max-width:430px;height:auto;min-height:820px;border-radius:44px;border:1px solid var(--border);margin:20px 0 40px}
+}
 .scr{flex:1;display:none;flex-direction:column;overflow:hidden}
 .scr.on{display:flex}
 
@@ -1041,27 +1052,51 @@ function openNoteDirectly(id){
   loadEd(id);showScr('sEditor');
 }
 
-// ── FIND ──
-function doFind(){
+// ── FIND — queries Supabase directly so any user can find any author's shared note ──
+async function doFind(){
   const author=$('fAuthor').value.trim(),err=$('ferr');
   if(!author){err.textContent='Enter the author username';return;}
+  err.textContent='Searching…';
+  $('ferr').style.color='var(--text3)';
+
   const vals=getValsFromList('findDragList',findOrder);
-  const match=notes.find(n=>{
-    if(!n.locked||n.author!==author)return false;
-    const tried=findOrder.map(k=>vals[k]).join('')+author;
-    return tried===buildPw(n);
-  });
-  if(!match){err.textContent='Not found — check username, values, and layer order.';return;}
-  err.textContent='';
-  $('viewTitle').textContent=match.title||'Untitled';
-  $('viewMeta').textContent='by '+match.author+' · shared note';
-  $('viewBody').innerHTML=match.body||'(empty)';
-  const atts=match.attachments||[];
-  $('viewAttach').innerHTML=atts.length
-    ?'<div style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">Attachments</div>'+
-      atts.map((a,i)=>`<a class="view-file-btn" href="${a.data}" download="${a.name}">📎 ${a.name} — tap to download</a>`).join('')
-    :'';
-  showScr('sView');
+
+  try{
+    // fetch all locked notes by this author from Supabase (public read via RLS policy below)
+    const {data,error}=await sb.from('notes')
+      .select('id,title,body,locked,pw,author,attachments')
+      .eq('author',author)
+      .eq('locked',true);
+
+    if(error)throw error;
+
+    const match=(data||[]).find(n=>{
+      const pw=n.pw||{l:'',n:'',s:'',order:['l','n','s']};
+      const tried=findOrder.map(k=>vals[k]).join('')+author;
+      const correct=(pw.order||['l','n','s']).map(k=>pw[k]||'').join('')+author;
+      return tried===correct;
+    });
+
+    if(!match){
+      $('ferr').style.color='var(--red)';
+      err.textContent='Not found — check username, values, and layer order.';
+      return;
+    }
+
+    err.textContent='';
+    $('viewTitle').textContent=match.title||'Untitled';
+    $('viewMeta').textContent='by '+match.author+' · shared note';
+    $('viewBody').innerHTML=match.body||'(empty)';
+    const atts=match.attachments||[];
+    $('viewAttach').innerHTML=atts.length
+      ?'<div style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">Attachments</div>'+
+        atts.map(a=>`<a class="view-file-btn" href="${a.data}" download="${a.name}">📎 ${a.name} — tap to download</a>`).join('')
+      :'';
+    showScr('sView');
+  }catch(e){
+    $('ferr').style.color='var(--red)';
+    err.textContent='Error: '+e.message;
+  }
 }
 
 // ── BOOT ──
@@ -1074,9 +1109,17 @@ sb.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'||!session){currentUser=null;}
 });
 
+// ── SERVICE WORKER ──
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/SkyNote/sw.js').catch(()=>{});
+  });
+}
+
 // init drag lists
 renderDragList('setupDragList',setupOrder,{l:'',n:'',s:''});
 renderDragList('findDragList',findOrder,{l:'',n:'',s:''});
+
 </script>
 </body>
 </html>
