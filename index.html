@@ -344,9 +344,13 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
       <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">fixed</div>
     </div>
     <div class="lbl" style="margin-top:20px">Lock &amp; share</div>
-    <div class="swrow">
+    <div class="swrow" style="margin-bottom:10px">
       <div><div class="sw-t">Lock this note</div><div class="sw-s">Viewers need the password to read it</div></div>
       <div class="tog on" id="ltog" onclick="toggleLock()"><div class="tog-t"></div></div>
+    </div>
+    <div class="swrow">
+      <div><div class="sw-t">Block screenshots</div><div class="sw-s">Viewers cannot screenshot this note</div></div>
+      <div class="tog" id="screenshotTog" onclick="toggleScreenshot()"><div class="tog-t"></div></div>
     </div>
     <div class="serr" id="serr"></div>
     <button class="sbtn" onclick="goEditor()">Continue to note →</button>
@@ -414,7 +418,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 <!-- VIEW -->
 <div class="scr" id="sView">
   <div class="nav-hdr">
-    <button class="back" onclick="showScr('sFind')">
+    <button class="back" onclick="goHome()">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
     </button>
     <span class="nav-t">Note</span>
@@ -498,6 +502,7 @@ let fabTimer=null,fabStart=null,fabRaf=null;
 let pcEnabled=true,pcLength=4,pcHash='',pcBuffer='';
 let pcMode='',pcNewBuf='',pcPendingNoteId=null;
 let noteAttachments={};
+let blockScreenshot=false;
 
 const NAMES={l:'Letters',n:'Numbers',s:'Symbols'};
 const $=id=>document.getElementById(id);
@@ -521,7 +526,7 @@ function showScr(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $(id).classList.add('on');
 }
-function goHome(){showScr('sHome');renderNotes();}
+function goHome(){applyScreenshotBlock(false);showScr('sHome');renderNotes();}
 function goProfile(){
   $('profIn').value=username;
   $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
@@ -604,6 +609,7 @@ async function loadNotesFromDB(){
   notes=(data||[]).map(r=>({
     id:r.id,title:r.title||'',body:r.body||'',
     locked:r.locked||false,
+    blockScreenshot:r.block_screenshot||false,
     pw:r.pw||{l:'',n:'',s:'',order:['l','n','s']},
     author:r.author||username,
     attachments:r.attachments||[]
@@ -620,6 +626,7 @@ async function saveNoteToDB(n){
     title:n.title,
     body:n.body,
     locked:n.locked,
+    block_screenshot:n.blockScreenshot||false,
     pw:n.pw,
     author:n.author,
     attachments:atts
@@ -892,14 +899,36 @@ function attachDrag(item,listId,order){
 
 // ── SETUP ──
 function toggleLock(){isLocked=!isLocked;$('ltog').className='tog'+(isLocked?' on':'');}
+function toggleScreenshot(){blockScreenshot=!blockScreenshot;$('screenshotTog').className='tog'+(blockScreenshot?' on':'');}
+
+function applyScreenshotBlock(block){
+  // CSS-based: makes content invisible to screen capture APIs on Android Chrome
+  // by overlaying a transparent element and using CSS filter trick
+  const el=$('phone');
+  if(block){
+    el.style.filter='opacity(0.9999)'; // triggers GPU layer — blocks some screenshot APIs
+    document.body.style.userSelect='none';
+    document.body.style.webkitUserSelect='none';
+    // For Android WebView (TWA/PWABuilder) this is enforced natively
+    if(window.screen && window.screen.orientation){
+      try{window.androidScreenshot && window.androidScreenshot.block(true);}catch(e){}
+    }
+  } else {
+    el.style.filter='';
+    document.body.style.userSelect='';
+    document.body.style.webkitUserSelect='';
+    try{window.androidScreenshot && window.androidScreenshot.block(false);}catch(e){}
+  }
+}
 
 function goSetup(id){
   editing=id;
-  let pw={l:'',n:'',s:'',order:['l','n','s']};isLocked=true;
-  if(id){const n=notes.find(x=>x.id===id);if(n){pw=n.pw||{l:'',n:'',s:'',order:['l','n','s']};isLocked=n.locked;}}
+  let pw={l:'',n:'',s:'',order:['l','n','s']};isLocked=true;blockScreenshot=false;
+  if(id){const n=notes.find(x=>x.id===id);if(n){pw=n.pw||{l:'',n:'',s:'',order:['l','n','s']};isLocked=n.locked;blockScreenshot=n.blockScreenshot||false;}}
   setupOrder=[...(pw.order||['l','n','s'])];
   $('serr').textContent='';
   $('ltog').className='tog'+(isLocked?' on':'');
+  $('screenshotTog').className='tog'+(blockScreenshot?' on':'');
   $('setupT').textContent=id?'Edit password':'Set password';
   $('setupUfVal').textContent=username;
   renderDragList('setupDragList',setupOrder,{l:pw.l||'',n:pw.n||'',s:pw.s||''});
@@ -918,15 +947,15 @@ async function goEditor(){
   const pw={l,n,s,order:[...setupOrder]};
   if(editing){
     const nx=notes.find(x=>x.id===editing);
-    if(nx){nx.pw=pw;nx.locked=isLocked;await saveNoteToDB(nx);}
+    if(nx){nx.pw=pw;nx.locked=isLocked;nx.blockScreenshot=blockScreenshot;await saveNoteToDB(nx);}
     loadEd(editing);
   } else {
-    const nx={id:'tmp_'+Date.now(),title:'',body:'',locked:isLocked,pw,author:username,attachments:[]};
+    const nx={id:'tmp_'+Date.now(),title:'',body:'',locked:isLocked,blockScreenshot,pw,author:username,attachments:[]};
     noteAttachments[nx.id]=[];
     notes.unshift(nx);
     editing=nx.id;
-    await saveNoteToDB(nx); // id gets replaced with UUID after this
-    editing=nx.id; // updated by saveNoteToDB
+    await saveNoteToDB(nx);
+    editing=nx.id;
     loadEd(editing);
   }
   showScr('sEditor');
@@ -1092,6 +1121,8 @@ async function doFind(){
       ?'<div style="font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">Attachments</div>'+
         atts.map(a=>`<a class="view-file-btn" href="${a.data}" download="${a.name}">📎 ${a.name} — tap to download</a>`).join('')
       :'';
+    // apply screenshot block if author enabled it
+    applyScreenshotBlock(match.blockScreenshot||false);
     showScr('sView');
   }catch(e){
     $('ferr').style.color='var(--red)';
