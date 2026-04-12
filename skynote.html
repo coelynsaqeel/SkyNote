@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SkyNote</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f0efe9;--border:#e8e6df;
+  --text:#1a1916;--text2:#6b6860;--text3:#b0aea6;
+  --accent:#1a1916;--accent-fg:#f5f4f0;
+  --blue:#2563eb;--green:#059669;--green-light:#ecfdf5;--red:#dc2626;
+  --radius:20px;--radius-sm:14px;--radius-xs:10px;
+  --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
+}
+[data-dark]{
+  --bg:#0f0e0c;--surface:#1a1917;--surface2:#222119;--border:#2c2b25;
+  --text:#f0efe9;--text2:#9b9890;--text3:#4a4940;
+  --accent:#f0efe9;--accent-fg:#1a1916;--green-light:#064e3b;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:var(--bg);display:flex;justify-content:center;padding:20px 0 40px;min-height:100vh;transition:background .25s}
+.phone{width:min(390px,100vw);min-height:820px;background:var(--surface);border-radius:44px;border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;position:relative;transition:background .25s,border-color .25s}
+.sb{padding:16px 24px 8px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.sb-time{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+.prof-btn{width:32px;height:32px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s}
+.prof-btn:active{opacity:.7}
+.prof-init{font-size:12px;font-weight:600;color:var(--accent-fg)}
+.scr{flex:1;display:none;flex-direction:column;overflow:hidden}
+.scr.on{display:flex}
+
+/* ── AUTH SCREENS ── */
+.auth-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px 48px}
+.auth-logo{font-size:32px;font-weight:300;color:var(--text);letter-spacing:-1.2px;margin-bottom:4px}
+.auth-logo b{font-weight:600}
+.auth-sub{font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:36px}
+.auth-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:24px;width:100%}
+.auth-tab{flex:1;padding:9px;border-radius:9px;border:none;background:transparent;font-size:14px;font-weight:500;color:var(--text3);cursor:pointer;font-family:var(--font);transition:background .15s,color .15s}
+.auth-tab.on{background:var(--surface);color:var(--text)}
+.auth-field{width:100%;padding:13px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;outline:none;font-family:var(--font);margin-bottom:10px;transition:border-color .15s,background .25s}
+.auth-field:focus{border-color:var(--blue)}
+.auth-btn{width:100%;padding:15px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:var(--accent-fg);font-size:15px;font-weight:500;cursor:pointer;font-family:var(--font);margin-top:6px;transition:background .25s,opacity .15s}
+.auth-btn:active{opacity:.8}
+.auth-err{font-size:12px;color:var(--red);text-align:center;margin-top:8px;min-height:16px;font-family:var(--mono)}
+.auth-note{font-size:11px;color:var(--text3);text-align:center;margin-top:16px;font-family:var(--mono);line-height:1.6}
+.supabase-note{font-size:10px;color:var(--text3);font-family:var(--mono);text-align:center;margin-top:20px;padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);line-height:1.6}
+
+/* ── PASSCODE SCREEN ── */
+.pc-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:0}
+.pc-logo{font-size:26px;font-weight:300;color:var(--text);letter-spacing:-1px;margin-bottom:4px}
+.pc-logo b{font-weight:600}
+.pc-sub{font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:32px}
+.pc-title{font-size:16px;font-weight:500;color:var(--text);margin-bottom:24px;letter-spacing:-.3px}
+.pc-dots{display:flex;gap:14px;margin-bottom:40px}
+.pc-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background .15s,border-color .15s}
+.pc-dot.filled{background:var(--accent);border-color:var(--accent)}
+.pc-dot.err{background:var(--red);border-color:var(--red)}
+.pc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px}
+.pc-key{padding:18px 0;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);font-size:22px;font-weight:500;color:var(--text);cursor:pointer;text-align:center;font-family:var(--font);transition:background .1s,opacity .1s;user-select:none}
+.pc-key:active{background:var(--border);opacity:.7}
+.pc-key.del{font-size:16px;color:var(--text2)}
+.pc-key.empty{border:none;background:transparent;pointer-events:none}
+.pc-err{font-size:12px;color:var(--red);font-family:var(--mono);margin-top:16px;min-height:16px;text-align:center}
+.pc-skip{font-size:12px;color:var(--blue);font-family:var(--mono);margin-top:12px;cursor:pointer;text-align:center}
+
+/* ── HOME ── */
+.home-top{padding:20px 24px 10px;flex-shrink:0}
+.home-top h1{font-size:30px;font-weight:300;color:var(--text);letter-spacing:-1.2px}
+.home-top h1 b{font-weight:600}
+.home-sub{font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+.nlist{flex:1;overflow-y:auto;padding:4px 16px 140px}
+.nlist::-webkit-scrollbar{display:none}
+.nrow{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-radius:var(--radius);margin-bottom:8px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;user-select:none;position:relative;overflow:hidden;transition:background .2s,border-color .2s}
+.nrow:active{opacity:.7}
+.nrow-title{font-size:15px;font-weight:500;color:var(--text);letter-spacing:-.2px}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ldot.lk{background:var(--blue)}
+.ldot.op{background:var(--green)}
+.empty{flex:1;display:flex;align-items:center;justify-content:center;padding-bottom:140px}
+.empty p{font-size:13px;color:var(--text3);text-align:center;line-height:1.8;font-family:var(--mono)}
+.fab-area{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
+.fab{width:64px;height:64px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;transition:transform .15s}
+.fab:active{transform:scale(.93)}
+.fab-hint{font-size:10px;color:var(--text3);font-family:var(--mono);white-space:nowrap}
+
+/* ── NAV ── */
+.nav-hdr{padding:12px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0;transition:border-color .25s}
+.back{width:34px;height:34px;border-radius:var(--radius-xs);border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.back:active{background:var(--surface2)}
+.nav-t{font-size:16px;font-weight:500;color:var(--text);letter-spacing:-.3px;flex:1}
+
+/* ── COMMON BODY ── */
+.sbody{flex:1;overflow-y:auto;padding:20px 20px 36px}
+.sbody::-webkit-scrollbar{display:none}
+.lbl{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin:18px 0 8px;font-family:var(--mono)}
+.lbl:first-child{margin-top:0}
+.sf{width:100%;padding:13px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;outline:none;font-family:var(--mono);transition:border-color .15s,background .25s}
+.sf:focus{border-color:var(--blue)}
+.hint{font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+.swrow{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);transition:background .25s,border-color .25s}
+.sw-t{font-size:14px;font-weight:500;color:var(--text)}
+.sw-s{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+.tog{width:46px;height:28px;border-radius:14px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--blue)}
+.tog-t{width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s}
+.tog.on .tog-t{left:21px}
+.serr{font-size:12px;color:var(--red);margin-top:8px;min-height:16px;font-family:var(--mono)}
+.sbtn{width:100%;padding:15px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:var(--accent-fg);font-size:15px;font-weight:500;cursor:pointer;margin-top:18px;font-family:var(--font);transition:background .25s,opacity .15s}
+.sbtn:active{opacity:.8}
+.sbtn.danger{background:var(--red);color:#fff}
+
+/* ── DRAG REORDER ── */
+.drag-list{display:flex;flex-direction:column;gap:8px;margin-bottom:4px}
+.drag-item{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;touch-action:none;user-select:none;transition:background .25s,border-color .25s}
+.drag-item.dragging{opacity:.4;border-style:dashed}
+.drag-item.drag-over{border-color:var(--blue);background:var(--surface)}
+.drag-handle{display:flex;flex-direction:column;gap:3px;cursor:grab;padding:2px 4px;flex-shrink:0;touch-action:none}
+.drag-handle span{display:block;width:16px;height:2px;border-radius:1px;background:var(--text3)}
+.drag-field-wrap{flex:1;display:flex;flex-direction:column;gap:3px}
+.drag-field-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;font-family:var(--mono)}
+.drag-field{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;outline:none;font-family:var(--mono);transition:border-color .15s,background .25s}
+.drag-field:focus{border-color:var(--blue)}
+.username-fixed{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;opacity:.45}
+.uf-content{flex:1}
+.uf-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;font-family:var(--mono);margin-bottom:2px}
+.uf-value{font-size:14px;color:var(--text2);font-family:var(--mono)}
+.drag-hint{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:10px;line-height:1.5}
+
+/* ── EDITOR ── */
+.ed-title{width:100%;font-size:20px;font-weight:500;border:none;background:transparent;color:var(--text);outline:none;font-family:var(--font);letter-spacing:-.5px;flex:1}
+.ed-div{height:1px;background:var(--border);margin:0 20px;flex-shrink:0;transition:background .25s}
+.ed-wrap{flex:1;padding:14px 20px;overflow-y:auto}
+.ed-wrap::-webkit-scrollbar{display:none}
+.ed-ta{width:100%;min-height:260px;border:none;background:transparent;resize:none;font-size:15px;color:var(--text2);outline:none;font-family:var(--font);line-height:1.8}
+.edftr{padding:10px 16px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;transition:border-color .25s}
+.efbtn{padding:10px 13px;border-radius:var(--radius-xs);border:1px solid var(--border);background:transparent;cursor:pointer;font-size:13px;color:var(--text2);font-family:var(--font);flex:1;transition:background .15s}
+.efbtn:active{background:var(--surface2)}
+.efbtn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.efbtn.del{color:var(--red);border-color:rgba(220,38,38,.3)}
+.efbtn.lk{color:var(--blue);border-color:rgba(37,99,235,.3)}
+
+/* ── FIND ── */
+.find-intro{padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;font-size:12px;color:var(--text3);line-height:1.6;font-family:var(--mono);transition:border-color .25s}
+.find-body{flex:1;overflow-y:auto;padding:18px 20px 36px}
+.find-body::-webkit-scrollbar{display:none}
+.fi{width:100%;padding:13px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;outline:none;margin-bottom:10px;transition:border-color .15s,background .25s;font-family:var(--font)}
+.fi:focus{border-color:var(--blue)}
+.fi.mono{font-family:var(--mono)}
+.fbtn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:var(--accent-fg);font-size:15px;cursor:pointer;font-family:var(--font);font-weight:500;margin-top:4px;transition:background .25s,opacity .15s}
+.fbtn:active{opacity:.8}
+.ferr{font-size:12px;color:var(--red);margin:2px 0 6px;min-height:16px;font-family:var(--mono)}
+
+/* ── VIEW ── */
+.view-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--green);background:rgba(5,150,105,.1);padding:4px 10px;border-radius:20px;font-family:var(--mono);letter-spacing:.5px;text-transform:uppercase;margin-bottom:16px}
+.view-title{font-size:24px;font-weight:500;color:var(--text);letter-spacing:-.6px;margin-bottom:6px;line-height:1.2}
+.view-meta{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:20px}
+.view-divider{height:1px;background:var(--border);margin-bottom:20px}
+.view-body{font-size:15px;color:var(--text2);line-height:1.85;white-space:pre-wrap;word-break:break-word}
+.view-wrap{flex:1;overflow-y:auto;padding:20px 24px 40px}
+.view-wrap::-webkit-scrollbar{display:none}
+
+/* ── PROFILE ── */
+.prof-hero{padding:28px 24px 20px;display:flex;flex-direction:column;align-items:center;border-bottom:1px solid var(--border);flex-shrink:0;transition:border-color .25s}
+.prof-av{width:74px;height:74px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.prof-av span{font-size:24px;font-weight:600;color:var(--accent-fg)}
+.prof-nm{font-size:18px;font-weight:500;color:var(--text);letter-spacing:-.4px}
+.prof-sub{font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+.prof-body{flex:1;overflow-y:auto;padding:20px}
+.prof-body::-webkit-scrollbar{display:none}
+.prow{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:10px;transition:background .25s,border-color .25s}
+.prow .pr-t{font-size:14px;font-weight:500;color:var(--text)}
+.prow .pr-s{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+.pe-wrap{margin-bottom:12px}
+.pe-lbl{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;font-family:var(--mono)}
+.pe-row{display:flex;gap:8px}
+.pe-in{flex:1;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:15px;outline:none;font-family:var(--font);transition:border-color .15s,background .25s}
+.pe-in:focus{border-color:var(--blue)}
+.pe-save{padding:12px 18px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:var(--accent-fg);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);transition:background .25s}
+.pe-save:active{opacity:.8}
+.pc-len-row{display:flex;align-items:center;gap:8px}
+.pc-len-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pc-len-val{font-size:16px;font-weight:500;color:var(--text);min-width:24px;text-align:center;font-family:var(--mono)}
+
+/* ── SHEET ── */
+.ovl{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;z-index:40;border-radius:44px}
+.bsh{background:var(--surface);border-radius:28px 28px 0 0;padding:16px 20px 40px;width:100%;transition:background .25s}
+.sh-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
+.sh-t{font-size:17px;font-weight:500;margin-bottom:4px;color:var(--text);letter-spacing:-.3px}
+.sh-s{font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6;font-family:var(--mono)}
+.unlbtn{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:var(--accent-fg);font-size:15px;cursor:pointer;font-family:var(--font);font-weight:500;margin-top:10px;transition:background .25s}
+.sherr{font-size:12px;color:var(--red);text-align:center;margin-top:8px;min-height:16px;font-family:var(--mono)}
+.sh-username-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.sh-unlbl{font-size:11px;color:var(--text3);font-family:var(--mono);width:64px;flex-shrink:0;text-align:right}
+.sh-uninput{flex:1;padding:11px 13px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;outline:none;font-family:var(--font);transition:border-color .15s}
+.sh-uninput:focus{border-color:var(--blue)}
+
+/* loading spinner */
+.spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;margin:0 auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="sb" id="statusBar" style="display:none">
+    <span class="sb-time" id="clk">9:41</span>
+    <button class="prof-btn" onclick="goProfile()"><span class="prof-init" id="pInit">SK</span></button>
+  </div>
+
+  <!-- ══ AUTH ══ -->
+  <div class="scr on" id="sAuth">
+    <div class="auth-wrap">
+      <div class="auth-logo">Sky<b>Note</b></div>
+      <div class="auth-sub">your notes, secured</div>
+      <div class="auth-tabs">
+        <button class="auth-tab on" id="tabSignIn" onclick="switchAuthTab('in')">Sign in</button>
+        <button class="auth-tab" id="tabSignUp" onclick="switchAuthTab('up')">Sign up</button>
+      </div>
+      <input class="auth-field" id="authEmail" type="email" placeholder="Email address" autocomplete="email"/>
+      <input class="auth-field" id="authPw" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()"/>
+      <input class="auth-field" id="authUser" type="text" placeholder="Username (display name)" style="display:none" autocomplete="username"/>
+      <button class="auth-btn" id="authBtn" onclick="doAuth()">Sign in</button>
+      <div class="auth-err" id="authErr"></div>
+      <div class="auth-note">Your notes are end-to-end secured under your account.</div>
+    </div>
+  </div>
+
+  <!-- ══ APP PASSCODE (launch) ══ -->
+  <div class="scr" id="sPasscode">
+    <div class="pc-wrap">
+      <div class="pc-logo">Sky<b>Note</b></div>
+      <div class="pc-sub" id="pcSub">Enter your passcode</div>
+      <div class="pc-title" id="pcTitle">Enter passcode</div>
+      <div class="pc-dots" id="pcDots"></div>
+      <div class="pc-grid" id="pcGrid"></div>
+      <div class="pc-err" id="pcErr"></div>
+    </div>
+  </div>
+
+  <!-- ══ SET PASSCODE (first time / change) ══ -->
+  <div class="scr" id="sSetPasscode">
+    <div class="nav-hdr" id="setPcNav" style="display:none">
+      <button class="back" onclick="goProfile()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+      </button>
+      <span class="nav-t">Set passcode</span>
+    </div>
+    <div class="pc-wrap">
+      <div class="pc-logo" id="setPcLogo">Sky<b>Note</b></div>
+      <div class="pc-sub" id="setPcSub">Choose a passcode to protect your notes</div>
+      <div class="pc-title" id="setPcTitle">Create passcode</div>
+      <div class="pc-dots" id="setPcDots"></div>
+      <div class="pc-grid" id="setPcGrid"></div>
+      <div class="pc-err" id="setPcErr"></div>
+    </div>
+  </div>
+
+  <!-- ══ HOME ══ -->
+  <div class="scr" id="sHome">
+    <div class="home-top">
+      <h1>Sky<b>Note</b></h1>
+      <div class="home-sub" id="homeSub">tap + to write · hold 3s to find</div>
+    </div>
+    <div class="nlist" id="nlist"></div>
+    <div class="fab-area">
+      <button class="fab" id="fabBtn"
+        onmousedown="fabDown(event)" onmouseup="fabUp()" onmouseleave="fabUp()"
+        ontouchstart="fabDown(event)" ontouchend="fabUp()" ontouchcancel="fabUp()">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="var(--accent-fg)" stroke-width="2.2" stroke-linecap="round"><path d="M13 5v16M5 13h16"/></svg>
+      </button>
+      <div class="fab-hint">hold 3s → find note</div>
+    </div>
+  </div>
+
+  <!-- ══ SETUP PASSWORD ══ -->
+  <div class="scr" id="sSetup">
+    <div class="nav-hdr">
+      <button class="back" onclick="goHome()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+      </button>
+      <span class="nav-t" id="setupT">Set password</span>
+    </div>
+    <div class="sbody">
+      <div class="lbl">Password layers</div>
+      <div class="drag-hint">Hold &amp; drag any field to reorder. The finder must know the order.</div>
+      <div class="drag-list" id="setupDragList"></div>
+      <div class="username-fixed">
+        <div class="uf-content">
+          <div class="uf-label">Username (always last)</div>
+          <div class="uf-value" id="setupUfVal">—</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">fixed</div>
+      </div>
+      <div class="lbl" style="margin-top:20px">Lock &amp; share</div>
+      <div class="swrow">
+        <div><div class="sw-t">Lock this note</div><div class="sw-s">When on — shareable via password</div></div>
+        <div class="tog on" id="ltog" onclick="toggleLock()"><div class="tog-t"></div></div>
+      </div>
+      <div class="serr" id="serr"></div>
+      <button class="sbtn" onclick="goEditor()">Continue to note →</button>
+    </div>
+  </div>
+
+  <!-- ══ EDITOR ══ -->
+  <div class="scr" id="sEditor">
+    <div class="nav-hdr">
+      <button class="back" onclick="saveHome()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+      </button>
+      <input class="ed-title" id="edT" placeholder="Note title"/>
+    </div>
+    <div class="ed-div"></div>
+    <div class="ed-wrap"><textarea class="ed-ta" id="edB" placeholder="Start writing..."></textarea></div>
+    <div class="edftr" id="edftr"></div>
+  </div>
+
+  <!-- ══ FIND NOTE ══ -->
+  <div class="scr" id="sFind">
+    <div class="nav-hdr">
+      <button class="back" onclick="goHome()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+      </button>
+      <span class="nav-t">Find a note</span>
+    </div>
+    <div class="find-intro">Enter the author's username and the 3 password layers in the correct order.</div>
+    <div class="find-body">
+      <div class="lbl">Author's username</div>
+      <input class="fi" id="fAuthor" placeholder="e.g. skynote_user"/>
+      <div class="lbl" style="margin-top:4px">Password layers — drag to reorder</div>
+      <div class="drag-hint">Hold any field and drag up or down.</div>
+      <div class="drag-list" id="findDragList"></div>
+      <div class="ferr" id="ferr"></div>
+      <button class="fbtn" onclick="doFind()">Find note</button>
+    </div>
+  </div>
+
+  <!-- ══ VIEW NOTE (read-only) ══ -->
+  <div class="scr" id="sView">
+    <div class="nav-hdr">
+      <button class="back" onclick="showScr('sFind')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+      </button>
+      <span class="nav-t">Note</span>
+    </div>
+    <div class="view-wrap">
+      <div class="view-badge">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 5.5l2.5 2.5 4.5-5"/></svg>
+        read only
+      </div>
+      <div class="view-title" id="viewTitle"></div>
+      <div class="view-meta" id="viewMeta"></div>
+      <div class="view-divider"></div>
+      <div class="view-body" id="viewBody"></div>
+    </div>
+  </div>
+
+  <!-- ══ PROFILE ══ -->
+  <div class="scr" id="sProfile">
+    <div class="nav-hdr">
+      <button class="back" onclick="goHome()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
+      </button>
+      <span class="nav-t">Profile</span>
+    </div>
+    <div class="prof-hero">
+      <div class="prof-av"><span id="avTxt">SK</span></div>
+      <div class="prof-nm" id="profNm">—</div>
+      <div class="prof-sub" id="profEmail">—</div>
+    </div>
+    <div class="prof-body">
+      <div class="pe-wrap">
+        <div class="pe-lbl">Display name</div>
+        <div class="pe-row">
+          <input class="pe-in" id="profIn" placeholder="Your username"/>
+          <button class="pe-save" onclick="saveUser()">Save</button>
+        </div>
+      </div>
+
+      <div class="lbl">Passcode</div>
+      <div class="swrow" style="margin-bottom:10px">
+        <div><div class="sw-t">App passcode</div><div class="sw-s" id="pcStatusLbl">Enabled</div></div>
+        <div class="tog on" id="pcTog" onclick="togglePasscode()"><div class="tog-t"></div></div>
+      </div>
+      <div id="pcLenSection">
+        <div class="prow" style="margin-bottom:10px">
+          <div><div class="pr-t">Passcode length</div><div class="pr-s">digits</div></div>
+          <div class="pc-len-row">
+            <button class="pc-len-btn" onclick="changePcLen(-1)">−</button>
+            <span class="pc-len-val" id="pcLenVal">4</span>
+            <button class="pc-len-btn" onclick="changePcLen(1)">+</button>
+          </div>
+        </div>
+        <button class="sbtn" style="margin-top:0" onclick="goChangePasscode()">Change passcode</button>
+      </div>
+
+      <div class="lbl" style="margin-top:20px">Appearance</div>
+      <div class="swrow" style="margin-bottom:10px">
+        <div><div class="sw-t">Dark mode</div><div class="sw-s" id="thLbl">Off</div></div>
+        <div class="tog" id="dkTog" onclick="toggleDark()"><div class="tog-t"></div></div>
+      </div>
+
+      <div class="lbl" style="margin-top:4px">Account</div>
+      <div class="prow" style="margin-bottom:10px">
+        <div><div class="pr-t">Notes</div><div class="pr-s" id="noteCnt">0 notes</div></div>
+      </div>
+      <button class="sbtn danger" style="margin-top:0" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div id="sheetArea"></div>
+</div>
+
+<!-- ══ SUPABASE ══ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  🔑  PASTE YOUR SUPABASE KEYS HERE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const SUPABASE_URL  = 'https://esmjhtbuoajvaciniejc.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWpodGJ1b2FqdmFjaW5pZWpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MTYwODUsImV4cCI6MjA5MTQ5MjA4NX0.IXzbDg3mHxIyGjWZFPiefDqUJ0KaOy_sGSZYefzLJNo';
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── state ──
+let currentUser = null;
+let username = '';
+let isDark = false;
+let notes = [];
+let nid = 1;
+let editing = null;
+let isLocked = true;
+let setupOrder = ['l','n','s'];
+let findOrder  = ['l','n','s'];
+let fabTimer = null, fabStart = null;
+
+// passcode state
+let pcEnabled = true;
+let pcLength  = 4;
+let pcHash    = '';          // stored hash of passcode
+let pcBuffer  = '';          // digits typed so far
+let pcMode    = '';          // 'verify' | 'set-new' | 'set-confirm'
+let pcNewBuf  = '';          // first entry when setting new
+let pcPendingNoteId = null;  // note waiting to open after passcode
+
+const NAMES = {l:'Letters', n:'Numbers', s:'Symbols'};
+const $ = id => document.getElementById(id);
+
+// ── simple hash (no crypto dep) ──
+async function hashPin(pin){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin+'skynote_salt'));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── clock ──
+function clk(){const d=new Date();$('clk').textContent=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+clk();setInterval(clk,15000);
+
+// ── screens ──
+function showScr(id){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  $(id).classList.add('on');
+  const showSb = !['sAuth','sPasscode','sSetPasscode'].includes(id);
+  $('statusBar').style.display = showSb ? 'flex' : 'none';
+}
+function goHome(){showScr('sHome');renderNotes();}
+
+// ════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════
+let authMode = 'in';
+function switchAuthTab(mode){
+  authMode = mode;
+  $('tabSignIn').className = 'auth-tab'+(mode==='in'?' on':'');
+  $('tabSignUp').className = 'auth-tab'+(mode==='up'?' on':'');
+  $('authBtn').textContent = mode==='in' ? 'Sign in' : 'Create account';
+  $('authUser').style.display = mode==='up' ? 'block' : 'none';
+  $('authErr').textContent = '';
+}
+
+async function doAuth(){
+  const email = $('authEmail').value.trim();
+  const pw    = $('authPw').value;
+  const err   = $('authErr');
+  if(!email||!pw){err.textContent='Please fill in all fields';return;}
+  $('authBtn').innerHTML='<div class="spin"></div>';
+  $('authBtn').disabled=true;
+
+  try{
+    if(authMode==='in'){
+      const {data,error} = await sb.auth.signInWithPassword({email,password:pw});
+      if(error) throw error;
+      await afterAuth(data.user);
+    } else {
+      const uname = $('authUser').value.trim()||email.split('@')[0];
+      const {data,error} = await sb.auth.signUp({
+        email,password:pw,
+        options:{data:{username:uname}}
+      });
+      if(error) throw error;
+      if(data.user && !data.session){
+        err.style.color='var(--green)';
+        err.textContent='Check your email to confirm your account.';
+        $('authBtn').innerHTML='Create account';$('authBtn').disabled=false;
+        return;
+      }
+      await afterAuth(data.user);
+    }
+  }catch(e){
+    err.style.color='var(--red)';
+    err.textContent=e.message||'Something went wrong';
+    $('authBtn').innerHTML=authMode==='in'?'Sign in':'Create account';
+    $('authBtn').disabled=false;
+  }
+}
+
+async function afterAuth(user){
+  currentUser = user;
+  username = user.user_metadata?.username || user.email.split('@')[0];
+  updateProfileUI();
+  await loadNotesFromDB();
+  // load passcode prefs from localStorage keyed by user id
+  const stored = JSON.parse(localStorage.getItem('skynote_pc_'+user.id)||'{}');
+  pcEnabled = stored.enabled !== false;
+  pcLength  = stored.length  || 4;
+  pcHash    = stored.hash    || '';
+  isDark    = stored.dark    || false;
+  if(isDark){$('phone').setAttribute('data-dark','');}
+  updatePcUI();
+  showScr('sAuth'); // hide auth
+  if(pcEnabled && pcHash){
+    launchPasscode('verify');
+  } else if(pcEnabled && !pcHash){
+    // first time — set a passcode
+    launchSetPasscode(false);
+  } else {
+    $('authBtn').innerHTML='Sign in';$('authBtn').disabled=false;
+    goHome();
+  }
+}
+
+async function signOut(){
+  await sb.auth.signOut();
+  currentUser=null;username='';notes=[];
+  $('authEmail').value='';$('authPw').value='';$('authErr').textContent='';
+  switchAuthTab('in');
+  showScr('sAuth');
+  $('authBtn').innerHTML='Sign in';$('authBtn').disabled=false;
+}
+
+// ════════════════════════════════════════
+//  NOTES — SUPABASE DB
+// ════════════════════════════════════════
+// Expected table: notes(id uuid, user_id uuid, title text, body text, locked bool, pw jsonb, author text)
+async function loadNotesFromDB(){
+  if(!currentUser) return;
+  const {data,error} = await sb.from('notes').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  if(error){console.warn('DB load:',error.message);notes=[];return;}
+  notes = (data||[]).map(r=>({
+    id:r.id, title:r.title||'', body:r.body||'',
+    locked:r.locked||false,
+    pw:r.pw||{l:'',n:'',s:'',order:['l','n','s']},
+    author:r.author||username
+  }));
+}
+
+async function saveNoteToDB(n){
+  if(!currentUser){return;}
+  const row={user_id:currentUser.id,title:n.title,body:n.body,locked:n.locked,pw:n.pw,author:n.author};
+  if(typeof n.id==='string' && n.id.includes('-')){
+    // uuid — update
+    await sb.from('notes').update(row).eq('id',n.id);
+  } else {
+    // new
+    const {data} = await sb.from('notes').insert({...row}).select().single();
+    if(data) n.id = data.id;
+  }
+}
+
+async function deleteNoteFromDB(id){
+  if(!currentUser) return;
+  if(typeof id==='string' && id.includes('-')) await sb.from('notes').delete().eq('id',id);
+}
+
+function savePcPrefs(){
+  if(!currentUser) return;
+  localStorage.setItem('skynote_pc_'+currentUser.id, JSON.stringify({
+    enabled:pcEnabled, length:pcLength, hash:pcHash, dark:isDark
+  }));
+}
+
+// ════════════════════════════════════════
+//  PASSCODE — LAUNCH (app open)
+// ════════════════════════════════════════
+function launchPasscode(mode){
+  pcMode   = mode;
+  pcBuffer = '';
+  $('pcSub').textContent   = username ? 'Welcome back, '+username : 'Enter your passcode';
+  $('pcTitle').textContent = 'Enter passcode';
+  $('pcErr').textContent   = '';
+  renderPcDots('pcDots', 0);
+  renderPcGrid('pcGrid', handlePcKey);
+  showScr('sPasscode');
+}
+
+function launchSetPasscode(fromProfile){
+  pcMode   = 'set-new';
+  pcNewBuf = '';
+  pcBuffer = '';
+  $('setPcNav').style.display = fromProfile ? 'flex':'none';
+  $('setPcLogo').style.display = fromProfile ? 'none':'block';
+  $('setPcSub').textContent   = fromProfile ? '' : 'Protect your notes with a passcode';
+  $('setPcTitle').textContent = 'Create passcode ('+pcLength+' digits)';
+  $('setPcErr').textContent   = '';
+  renderPcDots('setPcDots', 0);
+  renderPcGrid('setPcGrid', handleSetPcKey);
+  showScr('sSetPasscode');
+}
+
+function goChangePasscode(){ launchSetPasscode(true); }
+
+function renderPcDots(containerId, filled){
+  const el=$(containerId);
+  el.innerHTML='';
+  for(let i=0;i<pcLength;i++){
+    const d=document.createElement('div');
+    d.className='pc-dot'+(i<filled?' filled':'');
+    el.appendChild(d);
+  }
+}
+
+function renderPcGrid(containerId, handler){
+  const el=$(containerId);
+  el.innerHTML='';
+  const keys=[1,2,3,4,5,6,7,8,9,'','0','⌫'];
+  keys.forEach(k=>{
+    const btn=document.createElement('div');
+    if(k===''){btn.className='pc-key empty';}
+    else{
+      btn.className='pc-key'+(k==='⌫'?' del':'');
+      btn.textContent=k;
+      btn.addEventListener('click',()=>handler(String(k)));
+    }
+    el.appendChild(btn);
+  });
+}
+
+async function handlePcKey(key){
+  if(key==='⌫'){pcBuffer=pcBuffer.slice(0,-1);}
+  else if(pcBuffer.length<pcLength){pcBuffer+=key;}
+  renderPcDots('pcDots', pcBuffer.length);
+  if(pcBuffer.length===pcLength){
+    const h = await hashPin(pcBuffer);
+    if(h===pcHash){
+      pcBuffer='';
+      if(pcPendingNoteId!==null){
+        const nid=pcPendingNoteId; pcPendingNoteId=null;
+        openNoteDirectly(nid);
+      } else {
+        goHome();
+      }
+    } else {
+      $('pcDots').querySelectorAll('.pc-dot').forEach(d=>d.classList.add('err'));
+      setTimeout(()=>{
+        pcBuffer='';
+        renderPcDots('pcDots',0);
+        $('pcErr').textContent='Wrong passcode';
+      },400);
+    }
+  }
+}
+
+async function handleSetPcKey(key){
+  if(key==='⌫'){pcBuffer=pcBuffer.slice(0,-1);}
+  else if(pcBuffer.length<pcLength){pcBuffer+=key;}
+  renderPcDots('setPcDots', pcBuffer.length);
+
+  if(pcBuffer.length===pcLength){
+    if(pcMode==='set-new'){
+      pcNewBuf=pcBuffer; pcBuffer='';
+      pcMode='set-confirm';
+      $('setPcTitle').textContent='Confirm passcode';
+      $('setPcErr').textContent='';
+      renderPcDots('setPcDots',0);
+    } else {
+      // confirm
+      if(pcBuffer===pcNewBuf){
+        pcHash=await hashPin(pcBuffer);
+        pcBuffer=''; pcNewBuf='';
+        savePcPrefs();
+        updatePcUI();
+        const fromProfile=$('setPcNav').style.display!=='none';
+        if(fromProfile){goProfile();}
+        else{goHome();}
+      } else {
+        $('setPcDots').querySelectorAll('.pc-dot').forEach(d=>d.classList.add('err'));
+        setTimeout(()=>{
+          pcBuffer=''; pcMode='set-new'; pcNewBuf='';
+          $('setPcTitle').textContent='Create passcode ('+pcLength+' digits)';
+          $('setPcErr').textContent="Didn't match — try again";
+          renderPcDots('setPcDots',0);
+        },400);
+      }
+    }
+  }
+}
+
+// ════════════════════════════════════════
+//  PROFILE
+// ════════════════════════════════════════
+function updateProfileUI(){
+  $('profNm').textContent=username||'—';
+  $('profEmail').textContent=currentUser?.email||'—';
+  const ini=(username||'SK').slice(0,2).toUpperCase();
+  $('avTxt').textContent=ini; $('pInit').textContent=ini;
+  $('profIn').value=username;
+  $('setupUfVal').textContent=username;
+  $('homeSub').textContent='hey '+username+' · tap + to write · hold 3s to find';
+  $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
+}
+
+function updatePcUI(){
+  $('pcTog').className='tog'+(pcEnabled?' on':'');
+  $('pcStatusLbl').textContent=pcEnabled?'Enabled':'Disabled';
+  $('pcLenVal').textContent=pcLength;
+  $('pcLenSection').style.display=pcEnabled?'block':'none';
+  $('thLbl').textContent=isDark?'On':'Off';
+  $('dkTog').className='tog'+(isDark?' on':'');
+}
+
+function goProfile(){
+  $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
+  updatePcUI();
+  showScr('sProfile');
+}
+
+async function saveUser(){
+  const v=$('profIn').value.trim();
+  if(!v)return;
+  username=v;
+  if(currentUser){
+    await sb.auth.updateUser({data:{username:v}});
+  }
+  updateProfileUI();
+}
+
+function togglePasscode(){
+  pcEnabled=!pcEnabled;
+  if(pcEnabled && !pcHash){ launchSetPasscode(true); return; }
+  savePcPrefs(); updatePcUI();
+}
+
+function changePcLen(d){
+  pcLength=Math.min(8,Math.max(4,pcLength+d));
+  $('pcLenVal').textContent=pcLength;
+  pcHash=''; // force re-set passcode at new length
+  savePcPrefs();
+  launchSetPasscode(true);
+}
+
+function toggleDark(){
+  isDark=!isDark;
+  isDark?$('phone').setAttribute('data-dark',''):$('phone').removeAttribute('data-dark');
+  savePcPrefs(); updatePcUI();
+}
+
+// ════════════════════════════════════════
+//  FAB
+// ════════════════════════════════════════
+function fabDown(e){
+  e.preventDefault();
+  fabStart=Date.now();
+  fabTimer=setTimeout(()=>{fabTimer=null;fabStart=null;goFind();},3000);
+}
+function fabUp(){
+  if(fabStart===null)return;
+  const elapsed=Date.now()-fabStart;
+  fabStart=null;
+  if(fabTimer){clearTimeout(fabTimer);fabTimer=null;if(elapsed<500)goSetup(null);}
+}
+function goFind(){
+  $('fAuthor').value='';$('ferr').textContent='';
+  findOrder=['l','n','s'];
+  renderDragList('findDragList',findOrder,{l:'',n:'',s:''},true);
+  showScr('sFind');
+}
+
+// ════════════════════════════════════════
+//  DRAG-TO-REORDER
+// ════════════════════════════════════════
+function renderDragList(listId, order, vals, isFind){
+  const list=$(listId); list.innerHTML='';
+  order.forEach((k,i)=>{
+    const item=document.createElement('div');
+    item.className='drag-item'; item.dataset.key=k; item.dataset.idx=i;
+    item.innerHTML=`
+      <div class="drag-handle"><span></span><span></span><span></span></div>
+      <div class="drag-field-wrap">
+        <div class="drag-field-label">${NAMES[k]}</div>
+        <input class="drag-field" data-key="${k}" type="${k==='n'?'tel':'text'}"
+          placeholder="${k==='l'?'letters only (A–Z)':k==='n'?'numbers only (0–9)':"symbols only (_ & £ # @ ! ? %)"}"
+          value="${vals[k]||''}"
+          oninput="${k==='l'?"this.value=this.value.replace(/[^a-zA-Z]/g,'')":k==='n'?"this.value=this.value.replace(/[^0-9]/g,'')":"this.value=this.value.replace(/[^_&£#@!?%]/g,'')"}"
+        />
+      </div>`;
+    attachDrag(item,listId,order,isFind);
+    list.appendChild(item);
+  });
+}
+
+function getValsFromList(listId,order){
+  const obj={};
+  order.forEach(k=>{const inp=$(listId).querySelector(`input[data-key="${k}"]`);obj[k]=inp?inp.value:'';});
+  return obj;
+}
+
+function attachDrag(item,listId,order){
+  const handle=item.querySelector('.drag-handle');
+  let dragIdx=0,overIdx=-1,isDragging=false,holdTimer=null;
+  function onDown(e){
+    dragIdx=parseInt(item.dataset.idx);
+    holdTimer=setTimeout(()=>{isDragging=true;item.classList.add('dragging');},200);
+  }
+  function onMove(e){
+    if(!isDragging){clearTimeout(holdTimer);return;}
+    e.preventDefault();
+    const y=e.touches?e.touches[0].clientY:e.clientY;
+    const items=[...$(listId).querySelectorAll('.drag-item')];
+    items.forEach(it=>it.classList.remove('drag-over'));
+    let no=-1;
+    items.forEach((it,i)=>{const r=it.getBoundingClientRect();if(y>=r.top&&y<=r.bottom&&i!==dragIdx){no=i;it.classList.add('drag-over');}});
+    overIdx=no;
+  }
+  function onUp(){
+    clearTimeout(holdTimer);
+    if(!isDragging){item.classList.remove('dragging');return;}
+    isDragging=false; item.classList.remove('dragging');
+    $(listId).querySelectorAll('.drag-item').forEach(it=>it.classList.remove('drag-over'));
+    if(overIdx>=0&&overIdx!==dragIdx){
+      const vals=getValsFromList(listId,order);
+      const moved=order.splice(dragIdx,1)[0];
+      order.splice(overIdx,0,moved);
+      renderDragList(listId,order,vals);
+    }
+    overIdx=-1;
+  }
+  handle.addEventListener('mousedown',onDown);
+  handle.addEventListener('touchstart',onDown,{passive:true});
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('mouseup',onUp);
+  document.addEventListener('touchend',onUp);
+}
+
+// ════════════════════════════════════════
+//  SETUP
+// ════════════════════════════════════════
+function toggleLock(){isLocked=!isLocked;$('ltog').className='tog'+(isLocked?' on':'');}
+
+function goSetup(id){
+  editing=id;
+  let pw={l:'',n:'',s:'',order:['l','n','s']};isLocked=true;
+  if(id){const n=notes.find(x=>x.id===id);pw=n.pw;isLocked=n.locked;}
+  setupOrder=[...(pw.order||['l','n','s'])];
+  $('serr').textContent='';
+  $('ltog').className='tog'+(isLocked?' on':'');
+  $('setupT').textContent=id?'Edit password':'Set password';
+  $('setupUfVal').textContent=username;
+  renderDragList('setupDragList',setupOrder,{l:pw.l,n:pw.n,s:pw.s});
+  showScr('sSetup');
+}
+
+function buildPw(n){return n.pw.order.map(k=>n.pw[k]).join('')+n.author;}
+
+async function goEditor(){
+  const vals=getValsFromList('setupDragList',setupOrder);
+  const l=vals.l.trim(),n=vals.n.trim(),s=vals.s.trim(),err=$('serr');
+  if(!l){err.textContent='Letters field is required';return;}
+  if(!n){err.textContent='Numbers field is required';return;}
+  if(!s){err.textContent='Symbols field is required';return;}
+  err.textContent='';
+  const pw={l,n,s,order:[...setupOrder]};
+  if(editing){
+    const nx=notes.find(x=>x.id===editing);
+    nx.pw=pw;nx.locked=isLocked;
+    await saveNoteToDB(nx);
+  } else {
+    const nx={id:'new_'+Date.now(),title:'',body:'',locked:isLocked,pw,author:username};
+    notes.unshift(nx);editing=nx.id;
+    await saveNoteToDB(nx);
+  }
+  loadEd(editing);showScr('sEditor');
+}
+
+function loadEd(id){
+  const n=notes.find(x=>x.id===id);editing=id;
+  $('edT').value=n.title;$('edB').value=n.body;renderFtr(n);
+}
+function renderFtr(n){
+  $('edftr').innerHTML=`
+    <button class="efbtn del" onclick="delNote('${n.id}')">Delete</button>
+    <button class="efbtn ${n.locked?'lk':''}" onclick="goSetup('${n.id}')">${n.locked?'&#128274; Locked':'&#128275; Unlocked'}</button>
+    <button class="efbtn pri" onclick="saveHome()">Save</button>`;
+}
+async function saveHome(){
+  const n=notes.find(x=>x.id===editing);
+  if(n){n.title=$('edT').value||'Untitled';n.body=$('edB').value;await saveNoteToDB(n);}
+  goHome();
+}
+async function delNote(id){
+  await deleteNoteFromDB(id);
+  notes=notes.filter(x=>x.id!==id);
+  goHome();
+}
+
+// ════════════════════════════════════════
+//  NOTES LIST & OPEN
+// ════════════════════════════════════════
+function renderNotes(){
+  const el=$('nlist');
+  $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
+  if(!notes.length){el.innerHTML='<div class="empty"><p>No notes yet.<br>Tap + to write your first note.</p></div>';return;}
+  el.innerHTML=notes.map(n=>`
+    <div class="nrow" onclick="openNote('${n.id}')">
+      <div class="nrow-title">${n.title||'Untitled'}</div>
+      <div class="ldot ${n.locked?'lk':'op'}"></div>
+    </div>`).join('');
+}
+
+function openNote(id){
+  // if passcode enabled, gate with passcode first
+  if(pcEnabled && pcHash){
+    pcPendingNoteId=id;
+    launchPasscode('verify');
+  } else {
+    openNoteDirectly(id);
+  }
+}
+
+function openNoteDirectly(id){
+  const n=notes.find(x=>x.id===id);
+  if(!n) return;
+  if(!n.locked){loadEd(id);showScr('sEditor');}
+  else{ showUnlockSheet(n); }
+}
+
+function showUnlockSheet(n){
+  const sheetOrder=[...n.pw.order];
+  $('sheetArea').innerHTML=`
+    <div class="ovl" id="shOvl">
+      <div class="bsh">
+        <div class="sh-handle"></div>
+        <div class="sh-t">${n.title||'Untitled'}</div>
+        <div class="sh-s">Enter layers in order. Hold handle to drag &amp; reorder. Add author username last.</div>
+        <div class="drag-list" id="sheetDragList"></div>
+        <div class="sh-username-row">
+          <span class="sh-unlbl">Username</span>
+          <input class="sh-uninput" id="uaA" placeholder="Author's username" onkeydown="if(event.key==='Enter')doUnlock('${n.id}')"/>
+        </div>
+        <div class="sherr" id="sherr"></div>
+        <button class="unlbtn" onclick="doUnlock('${n.id}')">Unlock note</button>
+      </div>
+    </div>`;
+  $('shOvl').addEventListener('click',e=>{if(e.target===$('shOvl'))closeSheet();});
+  renderDragList('sheetDragList',sheetOrder,{l:'',n:'',s:''});
+  $('sheetArea').dataset.order=JSON.stringify(sheetOrder);
+}
+
+function doUnlock(id){
+  const n=notes.find(x=>x.id===id);
+  const sheetOrder=JSON.parse($('sheetArea').dataset.order||'["l","n","s"]');
+  const vals=getValsFromList('sheetDragList',sheetOrder);
+  const entered=sheetOrder.map(k=>vals[k]).join('')+$('uaA').value;
+  if(entered===buildPw(n)){closeSheet();loadEd(id);showScr('sEditor');}
+  else $('sherr').textContent='Wrong — check each layer, order, and username.';
+}
+function closeSheet(){$('sheetArea').innerHTML='';}
+
+// ════════════════════════════════════════
+//  FIND
+// ════════════════════════════════════════
+function doFind(){
+  const author=$('fAuthor').value.trim(),err=$('ferr');
+  if(!author){err.textContent='Enter the author username';return;}
+  const vals=getValsFromList('findDragList',findOrder);
+  const match=notes.find(n=>{
+    if(!n.locked||n.author!==author)return false;
+    const tried=findOrder.map(k=>vals[k]).join('')+author;
+    return tried===buildPw(n);
+  });
+  if(!match){err.textContent='Not found — check username, values, and layer order.';return;}
+  err.textContent='';
+  $('viewTitle').textContent=match.title||'Untitled';
+  $('viewMeta').textContent='by '+match.author+' · shared note';
+  $('viewBody').textContent=match.body||'(empty)';
+  showScr('sView');
+}
+
+// ════════════════════════════════════════
+//  BOOT — check existing session
+// ════════════════════════════════════════
+(async()=>{
+  const {data:{session}} = await sb.auth.getSession();
+  if(session?.user){
+    await afterAuth(session.user);
+  }
+  // else stays on auth screen
+})();
+
+// listen for auth state changes
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_OUT'||!session){currentUser=null;}
+});
+
+renderDragList('setupDragList',setupOrder,{l:'',n:'',s:''});
+renderDragList('findDragList',findOrder,{l:'',n:'',s:''},true);
+</script>
+</body>
+</html>
