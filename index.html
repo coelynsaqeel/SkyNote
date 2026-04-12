@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="SkyNote"/>
 <meta name="description" content="SkyNote — secure personal notes with password sharing"/>
 <link rel="manifest" href="manifest.json"/>
+<link rel="icon" href="favicon.ico" type="image/x-icon"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <title>SkyNote</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -263,7 +265,26 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <input class="auth-field" id="authUser" type="text" placeholder="Display name" style="display:none" autocomplete="username"/>
     <button class="auth-btn" id="authBtn" onclick="doAuth()">Sign in</button>
     <div class="auth-err" id="authErr"></div>
-    <div class="auth-note">Your notes are private and encrypted under your account.</div>
+    <div class="auth-note">
+      Your notes are private and secured under your account.<br/>
+      <a href="privacy.html" style="color:var(--blue);text-decoration:none" target="_blank">Privacy Policy</a>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL CONFIRM -->
+<div class="scr" id="sConfirm">
+  <div class="auth-wrap">
+    <div style="font-size:48px;margin-bottom:16px">📬</div>
+    <div class="auth-logo" style="margin-bottom:8px">Check your email</div>
+    <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:28px" id="confirmMsg">
+      We sent a confirmation link to your email.<br/>Open it then come back and sign in.
+    </div>
+    <button class="auth-btn" onclick="switchAuthTab('in');showScr('sAuth')">Go to sign in</button>
+    <div style="font-size:11px;color:var(--text3);font-family:var(--mono);text-align:center;margin-top:16px;cursor:pointer" onclick="resendConfirm()">
+      Didn't get it? Tap to resend
+    </div>
+    <div class="auth-err" id="confirmErr" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -554,15 +575,27 @@ async function doAuth(){
   try{
     if(authMode==='in'){
       const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
-      if(error)throw error;
+      if(error){
+        // Give helpful message if email not confirmed
+        if(error.message.toLowerCase().includes('confirm')||error.message.toLowerCase().includes('not confirmed')){
+          $('confirmMsg').innerHTML='Your email isn\'t confirmed yet.<br/>Check your inbox for the link we sent to<br/><b>'+email+'</b>';
+          $('confirmErr').textContent='';
+          showScr('sConfirm');
+          $('authBtn').innerHTML='Sign in';$('authBtn').disabled=false;
+          return;
+        }
+        throw error;
+      }
       await afterAuth(data.user);
     } else {
       const uname=$('authUser').value.trim()||email.split('@')[0];
       const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{username:uname}}});
       if(error)throw error;
       if(data.user&&!data.session){
-        err.style.color='var(--green)';
-        err.textContent='Check your email to confirm your account.';
+        // email confirmation required
+        $('confirmMsg').innerHTML='We sent a confirmation link to<br/><b>'+email+'</b><br/><br/>Open it then come back and sign in.';
+        $('confirmErr').textContent='';
+        showScr('sConfirm');
         $('authBtn').innerHTML='Create account';$('authBtn').disabled=false;
         return;
       }
@@ -574,6 +607,14 @@ async function doAuth(){
     $('authBtn').innerHTML=authMode==='in'?'Sign in':'Create account';
     $('authBtn').disabled=false;
   }
+}
+
+async function resendConfirm(){
+  const email=$('authEmail').value.trim();
+  if(!email){$('confirmErr').style.color='var(--red)';$('confirmErr').textContent='Go back and enter your email first';return;}
+  const {error}=await sb.auth.resend({type:'signup',email});
+  if(error){$('confirmErr').style.color='var(--red)';$('confirmErr').textContent=error.message;}
+  else{$('confirmErr').style.color='var(--green)';$('confirmErr').textContent='Confirmation email resent!';}
 }
 
 async function afterAuth(user){
