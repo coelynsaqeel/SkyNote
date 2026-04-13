@@ -246,6 +246,51 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 /* screen transitions */
 .scr{animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* TOOLBAR ACTIVE STATE */
+.tb-btn.active{background:var(--accent);color:var(--accent-fg);border-radius:8px}
+[data-dark] .tb-btn.active{background:var(--accent);color:var(--accent-fg)}
+
+/* ATTACH MENU */
+.attach-menu-ovl{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;border-radius:44px}
+.attach-menu{background:var(--surface);border-radius:24px 24px 0 0;padding:14px 16px 36px;width:100%;transition:background .25s}
+.attach-menu-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.attach-menu-title{font-size:13px;font-weight:500;color:var(--text3);font-family:var(--mono);text-align:center;margin-bottom:14px;letter-spacing:.5px;text-transform:uppercase}
+.attach-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.attach-opt{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:10px 0;border-radius:var(--radius-xs);transition:background .15s}
+.attach-opt:active{background:var(--surface2)}
+.attach-opt-icon{width:50px;height:50px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px}
+.attach-opt-label{font-size:11px;color:var(--text2);font-family:var(--mono);text-align:center}
+
+/* NOTE STYLE SELECTOR */
+.style-selector{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.style-selector::-webkit-scrollbar{display:none}
+.style-opt{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex-shrink:0}
+.style-opt-preview{width:44px;height:56px;border-radius:8px;border:2px solid var(--border);overflow:hidden;position:relative;transition:border-color .15s}
+.style-opt-preview.active{border-color:var(--blue)}
+.style-opt-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-align:center}
+.style-opt-label.active{color:var(--blue)}
+
+/* NOTE BACKGROUNDS */
+.ed-content.style-plain{background:var(--surface)}
+.ed-content.style-ruled{
+  background-image:repeating-linear-gradient(transparent,transparent 27px,var(--border) 27px,var(--border) 28px);
+  background-size:100% 28px;
+  line-height:28px
+}
+.ed-content.style-grid{
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:28px 28px
+}
+
+/* BOOK STYLE — horizontal page scroll */
+.ed-body.book-mode{overflow-x:auto;overflow-y:hidden;display:flex;flex-direction:row;scrollbar-width:none}
+.ed-body.book-mode::-webkit-scrollbar{display:none}
+.ed-body.book-mode .ed-content{min-width:calc(100vw - 32px);max-width:calc(100vw - 32px);height:100%;overflow:hidden;border-right:1px solid var(--border);flex-shrink:0;padding:16px 18px;font-size:15px;line-height:1.85}
+
+/* VERTICAL PAGES — scroll bottom to top feel */
+.ed-body.vertical-mode{overflow-y:auto;display:flex;flex-direction:column}
+.ed-body.vertical-mode .ed-content{min-height:100%}
 </style>
 </head>
 <body>
@@ -387,33 +432,77 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <input class="ed-title-in" id="edT" placeholder="Title"/>
     <button class="efbtn pri" style="flex-shrink:0;padding:8px 14px" onclick="saveHome()">Save</button>
   </div>
+
+  <!-- NOTE STYLE SELECTOR -->
+  <div class="style-selector">
+    <div class="style-opt" onclick="setNoteStyle('plain')">
+      <div class="style-opt-preview active" id="style-plain">
+        <div style="width:100%;height:100%;background:var(--surface)"></div>
+      </div>
+      <div class="style-opt-label active" id="slbl-plain">Plain</div>
+    </div>
+    <div class="style-opt" onclick="setNoteStyle('ruled')">
+      <div class="style-opt-preview" id="style-ruled">
+        <div style="width:100%;height:100%;background:repeating-linear-gradient(transparent,transparent 7px,var(--border) 7px,var(--border) 8px)"></div>
+      </div>
+      <div class="style-opt-label" id="slbl-ruled">Ruled</div>
+    </div>
+    <div class="style-opt" onclick="setNoteStyle('grid')">
+      <div class="style-opt-preview" id="style-grid">
+        <div style="width:100%;height:100%;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:8px 8px"></div>
+      </div>
+      <div class="style-opt-label" id="slbl-grid">Grid</div>
+    </div>
+    <div class="style-opt" onclick="setNoteStyle('book')">
+      <div class="style-opt-preview" id="style-book">
+        <div style="width:100%;height:100%;background:var(--surface);display:flex">
+          <div style="width:3px;background:var(--border);height:100%"></div>
+          <div style="flex:1;background:repeating-linear-gradient(transparent,transparent 7px,var(--border) 7px,var(--border) 8px)"></div>
+        </div>
+      </div>
+      <div class="style-opt-label" id="slbl-book">Book</div>
+    </div>
+    <div class="style-opt" onclick="setNoteStyle('vertical')">
+      <div class="style-opt-preview" id="style-vertical">
+        <div style="width:100%;height:100%;background:var(--surface2);display:flex;flex-direction:column;gap:4px;padding:4px">
+          <div style="height:6px;background:var(--border);border-radius:3px"></div>
+          <div style="height:6px;background:var(--border);border-radius:3px;width:70%"></div>
+          <div style="height:6px;background:var(--border);border-radius:3px;width:85%"></div>
+        </div>
+      </div>
+      <div class="style-opt-label" id="slbl-vertical">Vertical</div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
   <div class="ed-toolbar">
-    <button class="tb-btn" onclick="fmt('bold')" title="Bold"><b>B</b></button>
-    <button class="tb-btn" onclick="fmt('italic')" title="Italic"><i style="font-family:serif">I</i></button>
-    <button class="tb-btn" onclick="fmt('underline')" title="Underline"><u>U</u></button>
-    <button class="tb-btn" onclick="fmt('strikeThrough')" title="Strike" style="text-decoration:line-through">S</button>
+    <button class="tb-btn" id="tb-bold" onclick="toggleFmt('bold','tb-bold')" title="Bold"><b>B</b></button>
+    <button class="tb-btn" id="tb-italic" onclick="toggleFmt('italic','tb-italic')" title="Italic"><i style="font-family:serif">I</i></button>
+    <button class="tb-btn" id="tb-underline" onclick="toggleFmt('underline','tb-underline')" title="Underline"><u>U</u></button>
+    <button class="tb-btn" id="tb-strike" onclick="toggleFmt('strikeThrough','tb-strike')" title="Strike" style="text-decoration:line-through">S</button>
     <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="fmtBlock('h2')" title="Heading" style="font-size:12px;font-weight:700">H</button>
-    <button class="tb-btn" onclick="fmtBlock('p')" title="Paragraph" style="font-size:13px">¶</button>
-    <button class="tb-btn" onclick="fmt('insertUnorderedList')" title="Bullets" style="font-size:16px">•</button>
-    <button class="tb-btn" onclick="fmt('insertOrderedList')" title="Numbered" style="font-size:12px">1.</button>
+    <button class="tb-btn" id="tb-h2" onclick="toggleBlock('h2','tb-h2')" title="Heading" style="font-size:12px;font-weight:700">H</button>
+    <button class="tb-btn" id="tb-p" onclick="toggleBlock('p','tb-p')" title="Paragraph" style="font-size:13px">¶</button>
+    <button class="tb-btn" id="tb-ul" onclick="toggleFmt('insertUnorderedList','tb-ul')" title="Bullets" style="font-size:16px">•</button>
+    <button class="tb-btn" id="tb-ol" onclick="toggleFmt('insertOrderedList','tb-ol')" title="Numbered" style="font-size:12px">1.</button>
     <div class="tb-sep"></div>
     <button class="tb-btn" onclick="insertHR()" title="Divider" style="font-size:18px;color:var(--text3)">—</button>
     <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="$('imgIn').click()" title="Image" style="font-size:16px">🖼</button>
-    <button class="tb-btn" onclick="$('fileIn').click()" title="Attach file" style="font-size:16px">📎</button>
+    <button class="tb-btn" onclick="showAttachMenu()" title="Attach" style="font-size:18px">📎</button>
   </div>
-  <div class="ed-body">
-    <div class="ed-content" id="edContent" contenteditable="true" data-placeholder="Start writing your note…" oninput="updateWC()"></div>
+
+  <div class="ed-body" id="edBody">
+    <div class="ed-content style-plain" id="edContent" contenteditable="true" data-placeholder="Start writing…" oninput="updateWC();updateToolbarState()"></div>
   </div>
   <div class="ed-attach-bar" id="attachBar" style="display:none"></div>
   <div class="ed-footer">
     <span class="ed-wc" id="wcDisplay">0 words</span>
     <button class="efbtn del" onclick="confirmDelete()">Delete</button>
-    <button class="efbtn lk" id="lockBtn" onclick="goSetup(editing)">🔓 Unlocked</button>
+    <button class="efbtn lk" id="lockBtn" onclick="goSetupFromEditor()">🔓 Unlocked</button>
   </div>
   <input type="file" id="imgIn" accept="image/*" style="display:none" onchange="handleImg(event)"/>
   <input type="file" id="fileIn" style="display:none" onchange="handleFile(event)"/>
+  <input type="file" id="audioIn" accept="audio/*" style="display:none" onchange="handleAudio(event)"/>
 </div>
 
 <!-- FIND -->
@@ -651,6 +740,7 @@ async function loadNotesFromDB(){
     id:r.id,title:r.title||'',body:r.body||'',
     locked:r.locked||false,
     blockScreenshot:r.block_screenshot||false,
+    noteStyle:r.note_style||'plain',
     pw:r.pw||{l:'',n:'',s:'',order:['l','n','s']},
     author:r.author||username,
     attachments:r.attachments||[]
@@ -668,6 +758,7 @@ async function saveNoteToDB(n){
     body:n.body,
     locked:n.locked,
     block_screenshot:n.blockScreenshot||false,
+    note_style:n.noteStyle||'plain',
     pw:n.pw,
     author:n.author,
     attachments:atts
@@ -1003,9 +1094,121 @@ async function goEditor(){
 }
 
 // ── EDITOR ──
-function fmt(cmd){document.execCommand(cmd,false,null);$('edContent').focus();}
-function fmtBlock(tag){document.execCommand('formatBlock',false,'<'+tag+'>');$('edContent').focus();}
+let currentNoteStyle='plain';
+
+function fmt(cmd){document.execCommand(cmd,false,null);$('edContent').focus();updateToolbarState();}
+function fmtBlock(tag){document.execCommand('formatBlock',false,'<'+tag+'>');$('edContent').focus();updateToolbarState();}
 function insertHR(){document.execCommand('insertHTML',false,'<hr/>');$('edContent').focus();}
+
+function toggleFmt(cmd,btnId){
+  document.execCommand(cmd,false,null);
+  $('edContent').focus();
+  updateToolbarState();
+}
+
+function toggleBlock(tag,btnId){
+  const val=document.queryCommandValue('formatBlock');
+  if(val===tag){document.execCommand('formatBlock',false,'<p>');}
+  else{document.execCommand('formatBlock',false,'<'+tag+'>');}
+  $('edContent').focus();
+  updateToolbarState();
+}
+
+function updateToolbarState(){
+  const map={bold:'tb-bold',italic:'tb-italic',underline:'tb-underline',strikeThrough:'tb-strike',insertUnorderedList:'tb-ul',insertOrderedList:'tb-ol'};
+  Object.entries(map).forEach(([cmd,id])=>{
+    const el=$(id);
+    if(el)el.classList.toggle('active',document.queryCommandState(cmd));
+  });
+  const val=document.queryCommandValue('formatBlock');
+  if($('tb-h2'))$('tb-h2').classList.toggle('active',val==='h2');
+  if($('tb-p'))$('tb-p').classList.toggle('active',val==='p'||val==='div');
+}
+
+function setNoteStyle(style){
+  currentNoteStyle=style;
+  const content=$('edContent');
+  const body=$('edBody');
+  content.className='ed-content';
+  body.className='ed-body';
+  if(style==='book'){body.classList.add('book-mode');content.classList.add('style-ruled');}
+  else if(style==='vertical'){body.classList.add('vertical-mode');content.classList.add('style-plain');}
+  else{content.classList.add('style-'+style);}
+  ['plain','ruled','grid','book','vertical'].forEach(s=>{
+    const prev=$('style-'+s);const lbl=$('slbl-'+s);
+    if(prev)prev.classList.toggle('active',s===style);
+    if(lbl)lbl.classList.toggle('active',s===style);
+  });
+}
+
+function showAttachMenu(){
+  $('sheetArea').innerHTML=`
+    <div class="attach-menu-ovl" onclick="if(event.target===this)closeSheet()">
+      <div class="attach-menu">
+        <div class="attach-menu-handle"></div>
+        <div class="attach-menu-title">Add to note</div>
+        <div class="attach-grid">
+          <div class="attach-opt" onclick="closeSheet();openCamera()">
+            <div class="attach-opt-icon">📷</div>
+            <div class="attach-opt-label">Camera</div>
+          </div>
+          <div class="attach-opt" onclick="closeSheet();openGallery()">
+            <div class="attach-opt-icon">🖼️</div>
+            <div class="attach-opt-label">Gallery</div>
+          </div>
+          <div class="attach-opt" onclick="closeSheet();$('fileIn').click()">
+            <div class="attach-opt-icon">📄</div>
+            <div class="attach-opt-label">File</div>
+          </div>
+          <div class="attach-opt" onclick="closeSheet();$('audioIn').click()">
+            <div class="attach-opt-icon">🎵</div>
+            <div class="attach-opt-label">Audio</div>
+          </div>
+          <div class="attach-opt" onclick="closeSheet();insertLink()">
+            <div class="attach-opt-icon">🔗</div>
+            <div class="attach-opt-label">Link</div>
+          </div>
+          <div class="attach-opt" onclick="closeSheet();insertTable()">
+            <div class="attach-opt-icon">📊</div>
+            <div class="attach-opt-label">Table</div>
+          </div>
+          <div class="attach-opt" onclick="closeSheet();insertCheckbox()">
+            <div class="attach-opt-icon">☑️</div>
+            <div class="attach-opt-label">Checklist</div>
+          </div>
+          <div class="attach-opt" onclick="closeSheet();insertDate()">
+            <div class="attach-opt-icon">📅</div>
+            <div class="attach-opt-label">Date</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function openCamera(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';inp.capture='environment';
+  inp.onchange=e=>handleImg(e);inp.click();
+}
+function openGallery(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';
+  inp.onchange=e=>handleImg(e);inp.click();
+}
+function insertLink(){
+  const url=prompt('Enter URL:');
+  if(url){const text=prompt('Link text:')||url;document.execCommand('insertHTML',false,`<a href="${url}" target="_blank">${text}</a>`);}
+}
+function insertTable(){
+  let html='<table style="width:100%;border-collapse:collapse;margin:8px 0">';
+  for(let r=0;r<2;r++){html+='<tr>';for(let c=0;c<3;c++){html+=`<td style="border:1px solid var(--border);padding:6px 8px;min-width:60px" contenteditable="true">&nbsp;</td>`;}html+='</tr>';}
+  html+='</table><p><br></p>';document.execCommand('insertHTML',false,html);
+}
+function insertCheckbox(){document.execCommand('insertHTML',false,'<div><input type="checkbox" style="margin-right:8px"/> </div>');}
+function insertDate(){
+  const str=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.execCommand('insertHTML',false,`<span style="color:var(--text3);font-family:var(--mono);font-size:13px">${str}</span><br>`);
+}
 
 function updateWC(){
   const text=($('edContent').innerText||'').trim();
@@ -1017,8 +1220,7 @@ async function handleImg(e){
   const file=e.target.files[0];if(!file)return;
   const b64=await fileToBase64(file);
   document.execCommand('insertHTML',false,`<img src="${b64}" style="width:100%;max-width:100%;border-radius:10px;display:block;margin:8px 0"/>`);
-  $('edContent').focus();
-  e.target.value='';
+  $('edContent').focus();e.target.value='';
 }
 
 async function handleFile(e){
@@ -1026,8 +1228,16 @@ async function handleFile(e){
   const b64=await fileToBase64(file);
   if(!noteAttachments[editing])noteAttachments[editing]=[];
   noteAttachments[editing].push({name:file.name,data:b64,type:file.type});
-  renderAttachBar();
-  e.target.value='';
+  renderAttachBar();e.target.value='';
+}
+
+async function handleAudio(e){
+  const file=e.target.files[0];if(!file)return;
+  const b64=await fileToBase64(file);
+  if(!noteAttachments[editing])noteAttachments[editing]=[];
+  noteAttachments[editing].push({name:file.name,data:b64,type:file.type});
+  document.execCommand('insertHTML',false,`<audio controls src="${b64}" style="width:100%;margin:8px 0"></audio>`);
+  renderAttachBar();e.target.value='';
 }
 
 function renderAttachBar(){
@@ -1043,12 +1253,12 @@ function renderAttachBar(){
 }
 
 function openAttach(i){
-  const a=(noteAttachments[editing]||[])[i];
-  if(!a)return;
+  const a=(noteAttachments[editing]||[])[i];if(!a)return;
   const win=window.open();
-  win.document.write(`<html><body style="margin:0;background:#000">
-    <a href="${a.data}" download="${a.name}" style="color:#fff;font-family:sans-serif;padding:10px;display:block">⬇ Download ${a.name}</a>
-    ${a.type.startsWith('image/')?`<img src="${a.data}" style="max-width:100%"/>`:''}
+  win.document.write(`<html><body style="margin:0;background:#000;display:flex;flex-direction:column;align-items:center">
+    <a href="${a.data}" download="${a.name}" style="color:#fff;font-family:sans-serif;padding:14px;font-size:15px">⬇ Download ${a.name}</a>
+    ${a.type.startsWith('image/')?`<img src="${a.data}" style="max-width:100%;max-height:90vh"/>`:''}
+    ${a.type.startsWith('audio/')?`<audio controls src="${a.data}" style="width:90%;margin:20px auto"></audio>`:''}
   </body></html>`);
 }
 
@@ -1057,18 +1267,39 @@ function removeAttach(i){
   renderAttachBar();
 }
 
+function goSetupFromEditor(){
+  goSetup(editing);
+  setTimeout(()=>{
+    const backBtn=document.querySelector('#sSetup .back');
+    if(backBtn)backBtn.onclick=()=>{loadEd(editing);showScr('sEditor');};
+    const cont=document.querySelector('#sSetup .sbtn');
+    if(cont)cont.onclick=async()=>{
+      const vals=getValsFromList('setupDragList',setupOrder);
+      const l=vals.l.trim(),n=vals.n.trim(),s=vals.s.trim(),err=$('serr');
+      if(!l){err.textContent='Letters field is required';return;}
+      if(!n){err.textContent='Numbers field is required';return;}
+      if(!s){err.textContent='Symbols field is required';return;}
+      err.textContent='';
+      const pw={l,n,s,order:[...setupOrder]};
+      const nx=notes.find(x=>x.id===editing);
+      if(nx){nx.pw=pw;nx.locked=isLocked;nx.blockScreenshot=blockScreenshot;await saveNoteToDB(nx);}
+      loadEd(editing);showScr('sEditor');
+    };
+  },50);
+}
+
 function loadEd(id){
-  const n=notes.find(x=>x.id===id);
-  if(!n)return;
+  const n=notes.find(x=>x.id===id);if(!n)return;
   editing=id;
   $('edT').value=n.title;
   $('edContent').innerHTML=n.body||'';
-  updateWC();
+  updateWC();updateToolbarState();
   const locked=n.locked;
   $('lockBtn').textContent=locked?'🔒 Locked':'🔓 Unlocked';
   $('lockBtn').className='efbtn '+(locked?'lk':'');
   if(!noteAttachments[id])noteAttachments[id]=n.attachments||[];
   renderAttachBar();
+  setNoteStyle(n.noteStyle||'plain');
 }
 
 async function saveHome(){
@@ -1077,6 +1308,7 @@ async function saveHome(){
     n.title=$('edT').value.trim()||'Untitled';
     n.body=$('edContent').innerHTML;
     n.attachments=noteAttachments[editing]||[];
+    n.noteStyle=currentNoteStyle;
     await saveNoteToDB(n);
   }
   goHome();
