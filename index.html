@@ -262,35 +262,50 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .attach-opt-icon{width:50px;height:50px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px}
 .attach-opt-label{font-size:11px;color:var(--text2);font-family:var(--mono);text-align:center}
 
-/* NOTE STYLE SELECTOR */
-.style-selector{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
-.style-selector::-webkit-scrollbar{display:none}
-.style-opt{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex-shrink:0}
-.style-opt-preview{width:44px;height:56px;border-radius:8px;border:2px solid var(--border);overflow:hidden;position:relative;transition:border-color .15s}
-.style-opt-preview.active{border-color:var(--blue)}
-.style-opt-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-align:center}
-.style-opt-label.active{color:var(--blue)}
-
-/* NOTE BACKGROUNDS */
-.ed-content.style-plain{background:var(--surface)}
+/* NOTE BACKGROUNDS — plain default */
+.ed-content.style-plain{background:var(--surface);line-height:1.85}
 .ed-content.style-ruled{
-  background-image:repeating-linear-gradient(transparent,transparent 27px,var(--border) 27px,var(--border) 28px);
-  background-size:100% 28px;
-  line-height:28px
-}
-.ed-content.style-grid{
-  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
-  background-size:28px 28px
+  background-image:repeating-linear-gradient(transparent,transparent 29px,var(--border) 29px,var(--border) 30px);
+  background-size:100% 30px;
+  line-height:30px;
+  padding-top:4px
 }
 
-/* BOOK STYLE — horizontal page scroll */
-.ed-body.book-mode{overflow-x:auto;overflow-y:hidden;display:flex;flex-direction:row;scrollbar-width:none}
+/* BOOK — horizontal swipe pages */
+.ed-body.book-mode{
+  overflow-x:auto;overflow-y:hidden;
+  display:flex;flex-direction:row;
+  scroll-snap-type:x mandatory;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch
+}
 .ed-body.book-mode::-webkit-scrollbar{display:none}
-.ed-body.book-mode .ed-content{min-width:calc(100vw - 32px);max-width:calc(100vw - 32px);height:100%;overflow:hidden;border-right:1px solid var(--border);flex-shrink:0;padding:16px 18px;font-size:15px;line-height:1.85}
+.ed-body.book-mode .ed-content{
+  min-width:100%;width:100%;
+  height:100%;
+  scroll-snap-align:start;
+  flex-shrink:0;
+  overflow:hidden;
+  border-right:1px solid var(--border);
+  padding:16px 18px
+}
 
-/* VERTICAL PAGES — scroll bottom to top feel */
+/* VERTICAL — top to bottom scroll (default scroll direction) */
 .ed-body.vertical-mode{overflow-y:auto;display:flex;flex-direction:column}
 .ed-body.vertical-mode .ed-content{min-height:100%}
+
+/* PAGE STYLE MENU */
+.page-menu-ovl{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;border-radius:44px}
+.page-menu{background:var(--surface);border-radius:24px 24px 0 0;padding:14px 16px 36px;width:100%;transition:background .25s}
+.page-menu-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.page-menu-row{margin-bottom:16px}
+.page-menu-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px}
+.page-choice-row{display:flex;gap:10px}
+.page-choice{flex:1;padding:12px 6px;border-radius:12px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.page-choice.active{border-color:var(--blue);background:var(--blue-light,#eff6ff)}
+.page-choice-icon{font-size:22px;margin-bottom:4px}
+.page-choice-label{font-size:12px;font-weight:500;color:var(--text2);font-family:var(--mono)}
+.page-choice.active .page-choice-label{color:var(--blue)}
 </style>
 </head>
 <body>
@@ -300,14 +315,14 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 <div class="scr on" id="sAuth">
   <div class="auth-wrap">
     <div class="auth-logo">Sky<b>Note</b></div>
-    <div class="auth-sub">your notes, secured</div>
+    
     <div class="auth-tabs">
       <button class="auth-tab on" id="tabIn" onclick="switchAuthTab('in')">Sign in</button>
       <button class="auth-tab" id="tabUp" onclick="switchAuthTab('up')">Sign up</button>
     </div>
     <input class="auth-field" id="authEmail" type="email" placeholder="Email address" autocomplete="email"/>
     <input class="auth-field" id="authPw" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()"/>
-    <input class="auth-field" id="authUser" type="text" placeholder="Display name" style="display:none" autocomplete="username"/>
+    <input class="auth-field" id="authUser" type="text" placeholder="Author name" style="display:none" autocomplete="username"/>
     <button class="auth-btn" id="authBtn" onclick="doAuth()">Sign in</button>
     <div class="auth-err" id="authErr"></div>
     <div class="auth-note">
@@ -368,7 +383,6 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
   <div class="home-hdr">
     <div class="home-hdr-left">
       <h1>Sky<b>Note</b></h1>
-      <p id="homeSub">tap + to write · hold 2s to find</p>
     </div>
     <button class="prof-btn" onclick="goProfile()"><span class="prof-init" id="pInit">SK</span></button>
   </div>
@@ -399,15 +413,14 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <span class="nav-t" id="setupT">Set password</span>
   </div>
   <div class="sbody">
-    <div class="lbl">Password layers — for viewers only</div>
-    <div class="drag-hint">Hold &amp; drag to reorder. As the author you never enter this.</div>
+    <div class="drag-hint" style="margin-bottom:8px">Hold &amp; drag to reorder</div>
     <div class="drag-list" id="setupDragList"></div>
     <div class="username-fixed">
       <div class="uf-content">
-        <div class="uf-label">Username (always last)</div>
+        <div class="uf-label">Author</div>
         <div class="uf-value" id="setupUfVal">—</div>
       </div>
-      <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">fixed</div>
+
     </div>
     <div class="lbl" style="margin-top:20px">Lock &amp; share</div>
     <div class="swrow" style="margin-bottom:10px">
@@ -432,66 +445,30 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <input class="ed-title-in" id="edT" placeholder="Title"/>
     <button class="efbtn pri" style="flex-shrink:0;padding:8px 14px" onclick="saveHome()">Save</button>
   </div>
-
-  <!-- NOTE STYLE SELECTOR -->
-  <div class="style-selector">
-    <div class="style-opt" onclick="setNoteStyle('plain')">
-      <div class="style-opt-preview active" id="style-plain">
-        <div style="width:100%;height:100%;background:var(--surface)"></div>
-      </div>
-      <div class="style-opt-label active" id="slbl-plain">Plain</div>
+  <!-- SINGLE TOOLBAR ROW: format icon | tools | page icon | attach icon -->
+  <div class="ed-toolbar" style="justify-content:space-between">
+    <!-- LEFT: format toggle -->
+    <button class="tb-btn" id="tb-fmt-toggle" onclick="toggleFmtBar()" title="Formatting" style="font-size:17px">✏️</button>
+    <!-- FORMAT TOOLS (hidden by default, shown when toggle active) -->
+    <div id="fmtTools" style="display:none;align-items:center;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none">
+      <button class="tb-btn" id="tb-bold" onclick="toggleFmt('bold','tb-bold')"><b>B</b></button>
+      <button class="tb-btn" id="tb-italic" onclick="toggleFmt('italic','tb-italic')"><i style="font-family:serif">I</i></button>
+      <button class="tb-btn" id="tb-underline" onclick="toggleFmt('underline','tb-underline')"><u>U</u></button>
+      <button class="tb-btn" id="tb-strike" onclick="toggleFmt('strikeThrough','tb-strike')" style="text-decoration:line-through">S</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="tb-h2" onclick="toggleBlock('h2','tb-h2')" style="font-size:12px;font-weight:700">H</button>
+      <button class="tb-btn" id="tb-ul" onclick="toggleFmt('insertUnorderedList','tb-ul')" style="font-size:16px">•</button>
+      <button class="tb-btn" id="tb-ol" onclick="toggleFmt('insertOrderedList','tb-ol')" style="font-size:12px">1.</button>
+      <button class="tb-btn" onclick="insertHR()" style="font-size:16px;color:var(--text3)">—</button>
     </div>
-    <div class="style-opt" onclick="setNoteStyle('ruled')">
-      <div class="style-opt-preview" id="style-ruled">
-        <div style="width:100%;height:100%;background:repeating-linear-gradient(transparent,transparent 7px,var(--border) 7px,var(--border) 8px)"></div>
-      </div>
-      <div class="style-opt-label" id="slbl-ruled">Ruled</div>
-    </div>
-    <div class="style-opt" onclick="setNoteStyle('grid')">
-      <div class="style-opt-preview" id="style-grid">
-        <div style="width:100%;height:100%;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:8px 8px"></div>
-      </div>
-      <div class="style-opt-label" id="slbl-grid">Grid</div>
-    </div>
-    <div class="style-opt" onclick="setNoteStyle('book')">
-      <div class="style-opt-preview" id="style-book">
-        <div style="width:100%;height:100%;background:var(--surface);display:flex">
-          <div style="width:3px;background:var(--border);height:100%"></div>
-          <div style="flex:1;background:repeating-linear-gradient(transparent,transparent 7px,var(--border) 7px,var(--border) 8px)"></div>
-        </div>
-      </div>
-      <div class="style-opt-label" id="slbl-book">Book</div>
-    </div>
-    <div class="style-opt" onclick="setNoteStyle('vertical')">
-      <div class="style-opt-preview" id="style-vertical">
-        <div style="width:100%;height:100%;background:var(--surface2);display:flex;flex-direction:column;gap:4px;padding:4px">
-          <div style="height:6px;background:var(--border);border-radius:3px"></div>
-          <div style="height:6px;background:var(--border);border-radius:3px;width:70%"></div>
-          <div style="height:6px;background:var(--border);border-radius:3px;width:85%"></div>
-        </div>
-      </div>
-      <div class="style-opt-label" id="slbl-vertical">Vertical</div>
-    </div>
+    <div style="flex:1" id="fmtSpacer"></div>
+    <!-- MIDDLE: page style -->
+    <button class="tb-btn" onclick="showPageMenu()" title="Page style" style="font-size:17px">📋</button>
+    <!-- RIGHT: attach -->
+    <button class="tb-btn" onclick="showAttachMenu()" title="Attach" style="font-size:17px">📎</button>
   </div>
 
-  <!-- TOOLBAR -->
-  <div class="ed-toolbar">
-    <button class="tb-btn" id="tb-bold" onclick="toggleFmt('bold','tb-bold')" title="Bold"><b>B</b></button>
-    <button class="tb-btn" id="tb-italic" onclick="toggleFmt('italic','tb-italic')" title="Italic"><i style="font-family:serif">I</i></button>
-    <button class="tb-btn" id="tb-underline" onclick="toggleFmt('underline','tb-underline')" title="Underline"><u>U</u></button>
-    <button class="tb-btn" id="tb-strike" onclick="toggleFmt('strikeThrough','tb-strike')" title="Strike" style="text-decoration:line-through">S</button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn" id="tb-h2" onclick="toggleBlock('h2','tb-h2')" title="Heading" style="font-size:12px;font-weight:700">H</button>
-    <button class="tb-btn" id="tb-p" onclick="toggleBlock('p','tb-p')" title="Paragraph" style="font-size:13px">¶</button>
-    <button class="tb-btn" id="tb-ul" onclick="toggleFmt('insertUnorderedList','tb-ul')" title="Bullets" style="font-size:16px">•</button>
-    <button class="tb-btn" id="tb-ol" onclick="toggleFmt('insertOrderedList','tb-ol')" title="Numbered" style="font-size:12px">1.</button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="insertHR()" title="Divider" style="font-size:18px;color:var(--text3)">—</button>
-    <div class="tb-sep"></div>
-    <button class="tb-btn" onclick="showAttachMenu()" title="Attach" style="font-size:18px">📎</button>
-  </div>
-
-  <div class="ed-body" id="edBody">
+  <div class="ed-body" id="edBody" onclick="closeSheetIfOpen()">
     <div class="ed-content style-plain" id="edContent" contenteditable="true" data-placeholder="Start writing…" oninput="updateWC();updateToolbarState()"></div>
   </div>
   <div class="ed-attach-bar" id="attachBar" style="display:none"></div>
@@ -513,9 +490,9 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     </button>
     <span class="nav-t">Find a note</span>
   </div>
-  <div class="find-intro">Enter the author's username and the 3 password layers in the correct order.</div>
+  <div class="find-intro">Enter the author name and the 3 password layers in the correct order.</div>
   <div class="find-body">
-    <div class="lbl">Author's username</div>
+    <div class="lbl">Author</div>
     <input class="fi" id="fAuthor" placeholder="e.g. skynote_user"/>
     <div class="lbl" style="margin-top:4px">Password layers — drag to reorder</div>
     <div class="drag-hint">Hold any field and drag up or down to change order.</div>
@@ -555,13 +532,19 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <span class="nav-t">Profile</span>
   </div>
   <div class="prof-hero">
-    <div class="prof-av"><span id="avTxt">SK</span></div>
+    <div style="position:relative;margin-bottom:12px;cursor:pointer" onclick="$('pfpIn').click()">
+      <div class="prof-av" id="profAvDiv"><span id="avTxt">SK</span></div>
+      <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M8.5 2.5l1 1L3 10H2V9l6.5-6.5z"/></svg>
+      </div>
+    </div>
+    <input type="file" id="pfpIn" accept="image/*" style="display:none" onchange="handlePfpChange(event)"/>
     <div class="prof-nm" id="profNm">—</div>
     <div class="prof-sub" id="profEmail">—</div>
   </div>
   <div class="prof-body">
     <div class="pe-wrap">
-      <div class="pe-lbl">Display name</div>
+      <div class="pe-lbl">Author name</div>
       <div class="pe-row">
         <input class="pe-in" id="profIn" placeholder="Your username"/>
         <button class="pe-save" onclick="saveUser()">Save</button>
@@ -889,7 +872,7 @@ function updateProfileUI(){
   $('avTxt').textContent=ini;$('pInit').textContent=ini;
   $('profIn').value=username;
   $('setupUfVal').textContent=username;
-  $('homeSub').textContent='hey '+username+' · tap + · hold 2s to find';
+
   $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
 }
 
@@ -900,6 +883,25 @@ function updatePcUI(){
   $('pcLenSection').style.display=pcEnabled?'block':'none';
   $('thLbl').textContent=isDark?'On':'Off';
   $('dkTog').className='tog'+(isDark?' on':'');
+}
+
+async function handlePfpChange(e){
+  const file=e.target.files[0];if(!file)return;
+  const b64=await fileToBase64(file);
+  const avDiv=$('profAvDiv');
+  avDiv.innerHTML=`<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  // save to localStorage
+  if(currentUser)localStorage.setItem('skynote_pfp_'+currentUser.id,b64);
+  e.target.value='';
+}
+
+function loadPfp(){
+  if(!currentUser)return;
+  const b64=localStorage.getItem('skynote_pfp_'+currentUser.id);
+  if(b64){
+    const avDiv=$('profAvDiv');
+    if(avDiv)avDiv.innerHTML=`<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  }
 }
 
 async function saveUser(){
@@ -978,9 +980,9 @@ function renderDragList(listId,order,vals){
       <div class="drag-field-wrap">
         <div class="drag-field-label">${NAMES[k]}</div>
         <input class="drag-field" data-key="${k}" type="${k==='n'?'tel':'text'}"
-          placeholder="${k==='l'?'letters only (A–Z)':k==='n'?'numbers only (0–9)':"symbols (_ & £ # @ ! ? %)"}"
+          placeholder="${k==='l'?'letters only (A–Z)':k==='n'?'numbers only (0–9)':'any symbol (not letters or numbers)'}"
           value="${vals[k]||''}"
-          oninput="${k==='l'?"this.value=this.value.replace(/[^a-zA-Z]/g,'')":k==='n'?"this.value=this.value.replace(/[^0-9]/g,'')":"this.value=this.value.replace(/[^_&£#@!?%]/g,'')"}"
+          oninput="${k==='l'?"this.value=this.value.replace(/[^a-zA-Z]/g,'')":k==='n'?"this.value=this.value.replace(/[^0-9]/g,'')":"this.value=this.value.replace(/[a-zA-Z0-9]/g,'')"}"
         />
       </div>`;
     attachDrag(item,listId,order);
@@ -1095,6 +1097,105 @@ async function goEditor(){
 
 // ── EDITOR ──
 let currentNoteStyle='plain';
+let currentScrollMode='vertical'; // 'vertical' or 'book'
+let currentLineStyle='plain';     // 'plain' or 'ruled'
+let fmtBarOpen=false;
+
+function toggleFmtBar(){
+  fmtBarOpen=!fmtBarOpen;
+  const tools=$('fmtTools');
+  const spacer=$('fmtSpacer');
+  const toggle=$('tb-fmt-toggle');
+  tools.style.display=fmtBarOpen?'flex':'none';
+  spacer.style.display=fmtBarOpen?'none':'block';
+  toggle.classList.toggle('active',fmtBarOpen);
+}
+
+function closeSheetIfOpen(){
+  // tap on editor body closes any open sheet
+  const sa=$('sheetArea');
+  if(sa && sa.innerHTML.trim()) closeSheet();
+}
+
+function showPageMenu(){
+  $('sheetArea').innerHTML=`
+    <div class="page-menu-ovl" onclick="if(event.target===this)closeSheet()">
+      <div class="page-menu">
+        <div class="page-menu-handle"></div>
+        <div class="page-menu-row">
+          <div class="page-menu-label">Scroll direction</div>
+          <div class="page-choice-row">
+            <div class="page-choice ${currentScrollMode==='vertical'?'active':''}" id="pc-vertical" onclick="setScrollMode('vertical')">
+              <div class="page-choice-icon">📜</div>
+              <div class="page-choice-label">Vertical</div>
+            </div>
+            <div class="page-choice ${currentScrollMode==='book'?'active':''}" id="pc-book" onclick="setScrollMode('book')">
+              <div class="page-choice-icon">📖</div>
+              <div class="page-choice-label">Book</div>
+            </div>
+          </div>
+        </div>
+        <div class="page-menu-row">
+          <div class="page-menu-label">Line style</div>
+          <div class="page-choice-row">
+            <div class="page-choice ${currentLineStyle==='plain'?'active':''}" id="pc-plain" onclick="setLineStyle('plain')">
+              <div class="page-choice-icon">⬜</div>
+              <div class="page-choice-label">Plain</div>
+            </div>
+            <div class="page-choice ${currentLineStyle==='ruled'?'active':''}" id="pc-ruled" onclick="setLineStyle('ruled')">
+              <div class="page-choice-icon">📝</div>
+              <div class="page-choice-label">Ruled</div>
+            </div>
+          </div>
+        </div>
+        <button class="unlbtn" onclick="closeSheet()">Done</button>
+      </div>
+    </div>`;
+}
+
+function setScrollMode(mode){
+  currentScrollMode=mode;
+  applyNoteStyle();
+  // update UI
+  ['vertical','book'].forEach(m=>{
+    const el=$('pc-'+m);
+    if(el)el.className='page-choice'+(m===mode?' active':'');
+  });
+}
+
+function setLineStyle(style){
+  currentLineStyle=style;
+  applyNoteStyle();
+  ['plain','ruled'].forEach(s=>{
+    const el=$('pc-'+s);
+    if(el)el.className='page-choice'+(s===style?' active':'');
+  });
+}
+
+function applyNoteStyle(){
+  const content=$('edContent');
+  const body=$('edBody');
+  // reset
+  content.className='ed-content';
+  body.className='ed-body';
+  // scroll mode
+  if(currentScrollMode==='book'){
+    body.classList.add('book-mode');
+  } else {
+    body.classList.add('vertical-mode');
+  }
+  // line style
+  content.classList.add('style-'+currentLineStyle);
+  currentNoteStyle=currentScrollMode+'-'+currentLineStyle;
+}
+
+function setNoteStyle(combined){
+  // combined = 'vertical-plain', 'vertical-ruled', 'book-plain', 'book-ruled'
+  const parts=(combined||'vertical-plain').split('-');
+  currentScrollMode=parts[0]||'vertical';
+  currentLineStyle=parts[1]||'plain';
+  applyNoteStyle();
+}
 
 function fmt(cmd){document.execCommand(cmd,false,null);$('edContent').focus();updateToolbarState();}
 function fmtBlock(tag){document.execCommand('formatBlock',false,'<'+tag+'>');$('edContent').focus();updateToolbarState();}
@@ -1299,7 +1400,7 @@ function loadEd(id){
   $('lockBtn').className='efbtn '+(locked?'lk':'');
   if(!noteAttachments[id])noteAttachments[id]=n.attachments||[];
   renderAttachBar();
-  setNoteStyle(n.noteStyle||'plain');
+  setNoteStyle(n.noteStyle||'vertical-plain');
 }
 
 async function saveHome(){
@@ -1308,7 +1409,7 @@ async function saveHome(){
     n.title=$('edT').value.trim()||'Untitled';
     n.body=$('edContent').innerHTML;
     n.attachments=noteAttachments[editing]||[];
-    n.noteStyle=currentNoteStyle;
+    n.noteStyle=currentScrollMode+'-'+currentLineStyle;
     await saveNoteToDB(n);
   }
   goHome();
@@ -1337,7 +1438,6 @@ function renderNotes(){
     <div class="nrow" onclick="openNote('${n.id}')">
       <div class="nrow-info">
         <div class="nrow-title">${n.title||'Untitled'}</div>
-        <div class="nrow-preview">${(n.body||'').replace(/<[^>]*>/g,'').trim().slice(0,60)||'No content'}</div>
       </div>
       <div class="ldot ${n.locked?'lk':'op'}"></div>
     </div>`).join('');
