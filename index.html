@@ -160,7 +160,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .ed-body::-webkit-scrollbar{display:none}
 /* images in editor fit width like IG */
 .ed-content img{width:100%;max-width:100%;height:auto;object-fit:cover;border-radius:10px;display:block;margin:8px 0}
-.ed-content{min-height:300px;padding:14px 18px;font-size:15px;color:var(--text2);line-height:1.85;outline:none;font-family:var(--font);word-break:break-word}
+.ed-content{min-height:300px;padding:14px 18px;font-size:15px;color:var(--text2);line-height:1.85;outline:none;font-family:var(--font);word-break:break-word;white-space:pre-wrap}
 .ed-content:empty:before{content:attr(data-placeholder);color:var(--text3)}
 .ed-content h2{font-size:20px;font-weight:600;color:var(--text);margin:8px 0 4px}
 .ed-content ul,.ed-content ol{padding-left:20px;margin:4px 0}
@@ -195,7 +195,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .view-title{font-size:24px;font-weight:500;color:var(--text);letter-spacing:-.6px;margin-bottom:6px}
 .view-meta{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:20px}
 .view-divider{height:1px;background:var(--border);margin-bottom:20px}
-.view-body{font-size:15px;color:var(--text2);line-height:1.85;word-break:break-word}
+.view-body{font-size:15px;color:var(--text2);line-height:1.85;word-break:break-word;white-space:pre-wrap;font-family:var(--font)}
 .view-body img{width:100%;max-width:100%;height:auto;object-fit:cover;border-radius:10px;display:block;margin:8px 0}
 .view-wrap{flex:1;overflow-y:auto;padding:20px 22px 40px}
 .view-wrap::-webkit-scrollbar{display:none}
@@ -294,18 +294,6 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .ed-body.vertical-mode{overflow-y:auto;display:flex;flex-direction:column}
 .ed-body.vertical-mode .ed-content{min-height:100%}
 
-/* PAGE STYLE MENU */
-.page-menu-ovl{position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;border-radius:44px}
-.page-menu{background:var(--surface);border-radius:24px 24px 0 0;padding:14px 16px 36px;width:100%;transition:background .25s}
-.page-menu-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
-.page-menu-row{margin-bottom:16px}
-.page-menu-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px}
-.page-choice-row{display:flex;gap:10px}
-.page-choice{flex:1;padding:12px 6px;border-radius:12px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
-.page-choice.active{border-color:var(--blue);background:var(--blue-light,#eff6ff)}
-.page-choice-icon{font-size:22px;margin-bottom:4px}
-.page-choice-label{font-size:12px;font-weight:500;color:var(--text2);font-family:var(--mono)}
-.page-choice.active .page-choice-label{color:var(--blue)}
 </style>
 </head>
 <body>
@@ -314,7 +302,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 <!-- AUTH -->
 <div class="scr on" id="sAuth">
   <div class="auth-wrap">
-    <div class="auth-logo">Sky<b>Note</b></div>
+    <img src="icon-192.png" style="width:80px;height:80px;border-radius:20px;margin-bottom:16px"/>
     
     <div class="auth-tabs">
       <button class="auth-tab on" id="tabIn" onclick="switchAuthTab('in')">Sign in</button>
@@ -351,7 +339,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 <!-- PASSCODE -->
 <div class="scr" id="sPasscode">
   <div class="pc-wrap">
-    <div class="pc-logo">Sky<b>Note</b></div>
+    <img src="icon-192.png" style="width:72px;height:72px;border-radius:18px;margin-bottom:8px"/>
     <div class="pc-sub" id="pcSub">Enter your passcode</div>
     <div class="pc-title" id="pcTitle">Enter passcode</div>
     <div class="pc-dots" id="pcDots"></div>
@@ -369,7 +357,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <span class="nav-t">Set passcode</span>
   </div>
   <div class="pc-wrap">
-    <div class="pc-logo" id="setPcLogo">Sky<b>Note</b></div>
+    <img src="icon-192.png" id="setPcLogo" style="width:72px;height:72px;border-radius:18px;margin-bottom:8px"/>
     <div class="pc-sub" id="setPcSub">Protect your notes with a passcode</div>
     <div class="pc-title" id="setPcTitle">Create passcode</div>
     <div class="pc-dots" id="setPcDots"></div>
@@ -400,7 +388,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
         </svg>
       </div>
     </div>
-    <div class="fab-hint">hold 2s → find note</div>
+    <div class="fab-hint">hold 1.5s → find note</div>
   </div>
 </div>
 
@@ -443,7 +431,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
     </button>
     <input class="ed-title-in" id="edT" placeholder="Title"/>
-    <button class="efbtn pri" style="flex-shrink:0;padding:8px 14px" onclick="saveHome()">Save</button>
+    <button class="prof-btn" onclick="goProfile()" style="flex-shrink:0;width:32px;height:32px"><span class="prof-init" id="edProfInit">SK</span></button>
   </div>
   <!-- SINGLE TOOLBAR ROW: format icon | tools | page icon | attach icon -->
   <div class="ed-toolbar" style="justify-content:space-between">
@@ -462,8 +450,8 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
       <button class="tb-btn" onclick="insertHR()" style="font-size:16px;color:var(--text3)">—</button>
     </div>
     <div style="flex:1" id="fmtSpacer"></div>
-    <!-- MIDDLE: page style -->
-    <button class="tb-btn" onclick="showPageMenu()" title="Page style" style="font-size:17px">📋</button>
+    <!-- MIDDLE: scroll mode toggle -->
+    <button class="tb-btn" id="tb-scroll" onclick="toggleScrollMode()" title="Scroll mode" style="font-size:17px">📜</button>
     <!-- RIGHT: attach -->
     <button class="tb-btn" onclick="showAttachMenu()" title="Attach" style="font-size:17px">📎</button>
   </div>
@@ -490,7 +478,6 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     </button>
     <span class="nav-t">Find a note</span>
   </div>
-  <div class="find-intro">Enter the author name and the 3 password layers in the correct order.</div>
   <div class="find-body">
     <div class="lbl">Author</div>
     <input class="fi" id="fAuthor" placeholder="e.g. skynote_user"/>
@@ -890,6 +877,9 @@ async function handlePfpChange(e){
   const b64=await fileToBase64(file);
   const avDiv=$('profAvDiv');
   avDiv.innerHTML=`<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  // also update editor header avatar to show pfp
+  const edProf=$('edProfInit');
+  if(edProf){edProf.style.backgroundImage=`url(${b64})`;edProf.style.backgroundSize='cover';edProf.style.backgroundPosition='center';edProf.style.color='transparent';}
   // save to localStorage
   if(currentUser)localStorage.setItem('skynote_pfp_'+currentUser.id,b64);
   e.target.value='';
@@ -901,6 +891,8 @@ function loadPfp(){
   if(b64){
     const avDiv=$('profAvDiv');
     if(avDiv)avDiv.innerHTML=`<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    const edProf=$('edProfInit');
+    if(edProf){edProf.style.backgroundImage=`url(${b64})`;edProf.style.backgroundSize='cover';edProf.style.backgroundPosition='center';edProf.style.color='transparent';}
   }
 }
 
@@ -930,7 +922,7 @@ function toggleDark(){
 }
 
 // ── FAB — 2s hold with ring animation ──
-const HOLD=2000;
+const HOLD=1500;
 const CIRCUMFERENCE=188; // 2*pi*30
 
 function fabDown(e){
@@ -980,7 +972,7 @@ function renderDragList(listId,order,vals){
       <div class="drag-field-wrap">
         <div class="drag-field-label">${NAMES[k]}</div>
         <input class="drag-field" data-key="${k}" type="${k==='n'?'tel':'text'}"
-          placeholder="${k==='l'?'letters only (A–Z)':k==='n'?'numbers only (0–9)':'any symbol (not letters or numbers)'}"
+          placeholder="${k==='l'?'letters':k==='n'?'numbers':'symbols'}"
           value="${vals[k]||''}"
           oninput="${k==='l'?"this.value=this.value.replace(/[^a-zA-Z]/g,'')":k==='n'?"this.value=this.value.replace(/[^0-9]/g,'')":"this.value=this.value.replace(/[a-zA-Z0-9]/g,'')"}"
         />
@@ -1117,79 +1109,24 @@ function closeSheetIfOpen(){
   if(sa && sa.innerHTML.trim()) closeSheet();
 }
 
-function showPageMenu(){
-  $('sheetArea').innerHTML=`
-    <div class="page-menu-ovl" onclick="if(event.target===this)closeSheet()">
-      <div class="page-menu">
-        <div class="page-menu-handle"></div>
-        <div class="page-menu-row">
-          <div class="page-menu-label">Scroll direction</div>
-          <div class="page-choice-row">
-            <div class="page-choice ${currentScrollMode==='vertical'?'active':''}" id="pc-vertical" onclick="setScrollMode('vertical')">
-              <div class="page-choice-icon">📜</div>
-              <div class="page-choice-label">Vertical</div>
-            </div>
-            <div class="page-choice ${currentScrollMode==='book'?'active':''}" id="pc-book" onclick="setScrollMode('book')">
-              <div class="page-choice-icon">📖</div>
-              <div class="page-choice-label">Book</div>
-            </div>
-          </div>
-        </div>
-        <div class="page-menu-row">
-          <div class="page-menu-label">Line style</div>
-          <div class="page-choice-row">
-            <div class="page-choice ${currentLineStyle==='plain'?'active':''}" id="pc-plain" onclick="setLineStyle('plain')">
-              <div class="page-choice-icon">⬜</div>
-              <div class="page-choice-label">Plain</div>
-            </div>
-            <div class="page-choice ${currentLineStyle==='ruled'?'active':''}" id="pc-ruled" onclick="setLineStyle('ruled')">
-              <div class="page-choice-icon">📝</div>
-              <div class="page-choice-label">Ruled</div>
-            </div>
-          </div>
-        </div>
-        <button class="unlbtn" onclick="closeSheet()">Done</button>
-      </div>
-    </div>`;
-}
-
-function setScrollMode(mode){
-  currentScrollMode=mode;
+function toggleScrollMode(){
+  currentScrollMode=currentScrollMode==='vertical'?'book':'vertical';
   applyNoteStyle();
-  // update UI
-  ['vertical','book'].forEach(m=>{
-    const el=$('pc-'+m);
-    if(el)el.className='page-choice'+(m===mode?' active':'');
-  });
-}
-
-function setLineStyle(style){
-  currentLineStyle=style;
-  applyNoteStyle();
-  ['plain','ruled'].forEach(s=>{
-    const el=$('pc-'+s);
-    if(el)el.className='page-choice'+(s===style?' active':'');
-  });
+  const btn=$('tb-scroll');
+  if(btn){btn.textContent=currentScrollMode==='book'?'📖':'📜';btn.title=currentScrollMode==='book'?'Book (L/R)':'Vertical (U/D)';}
 }
 
 function applyNoteStyle(){
   const content=$('edContent');
   const body=$('edBody');
-  // reset
   content.className='ed-content';
   body.className='ed-body';
-  // scroll mode
-  if(currentScrollMode==='book'){
-    body.classList.add('book-mode');
-  } else {
-    body.classList.add('vertical-mode');
-  }
-  // line style
-  content.classList.add('style-'+currentLineStyle);
-  currentNoteStyle=currentScrollMode+'-'+currentLineStyle;
+  if(currentScrollMode==='book'){body.classList.add('book-mode');}
+  else{body.classList.add('vertical-mode');}
+  currentNoteStyle=currentScrollMode+'-plain';
 }
 
-function setNoteStyle(combined){
+function setNoteStyle(combined){{
   // combined = 'vertical-plain', 'vertical-ruled', 'book-plain', 'book-ruled'
   const parts=(combined||'vertical-plain').split('-');
   currentScrollMode=parts[0]||'vertical';
@@ -1392,6 +1329,9 @@ function goSetupFromEditor(){
 function loadEd(id){
   const n=notes.find(x=>x.id===id);if(!n)return;
   editing=id;
+  // sync profile icon in editor
+  const ini=(username||'SK').slice(0,2).toUpperCase();
+  if($('edProfInit'))$('edProfInit').textContent=ini;
   $('edT').value=n.title;
   $('edContent').innerHTML=n.body||'';
   updateWC();updateToolbarState();
