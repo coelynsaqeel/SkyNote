@@ -300,8 +300,8 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 <div class="phone" id="phone">
 
 <!-- SPLASH SCREEN -->
-<div class="scr on" id="sSplash" style="background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center">
-  <img src="icon-192.png" id="splashLogo" style="width:100px;height:100px;border-radius:26px;opacity:0;transition:opacity .6s ease,transform .6s ease;transform:scale(.85)"/>
+<div class="scr on" id="sSplash" style="background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;position:absolute;inset:0;z-index:999;transition:opacity .5s ease">
+  <img src="icon-192.png" id="splashLogo" style="width:110px;height:110px;border-radius:28px;opacity:0;transition:opacity .5s ease,transform .6s ease;transform:scale(.8)"/>
 </div>
 
 <!-- AUTH -->
@@ -1454,34 +1454,37 @@ async function doFind(){
 
 // ── BOOT ──
 async function boot(){
-  // Show splash
-  showScr('sSplash');
+  const splash=$('sSplash');
   const logo=$('splashLogo');
-  // animate logo in
-  setTimeout(()=>{logo.style.opacity='1';logo.style.transform='scale(1)';},100);
-  
-  // Meanwhile check session
+
+  // Start with auth hidden, show splash on top
+  showScr('sAuth'); // load auth underneath but splash covers it
+
+  // Animate logo in
+  setTimeout(()=>{
+    logo.style.opacity='1';
+    logo.style.transform='scale(1)';
+  },100);
+
+  // Check session while splash shows
   const {data:{session}}=await sb.auth.getSession();
-  
-  // Hold splash for at least 1.8s for effect
-  await new Promise(r=>setTimeout(r,1800));
-  
-  // Fade splash logo out
-  logo.style.opacity='0';logo.style.transform='scale(1.1)';
-  await new Promise(r=>setTimeout(r,400));
-  
+
+  // Hold for 2 seconds total from start
+  await new Promise(r=>setTimeout(r,2000));
+
+  // Decide what's underneath before fading splash
   if(session?.user){
+    // pre-load home so it's ready when splash fades
     await afterAuth(session.user);
   } else {
-    // Check if user has ever signed up on this device
-    // If they have a stored email, go straight to sign in (not sign up)
     const lastEmail=localStorage.getItem('skynote_last_email');
-    if(lastEmail){
-      $('authEmail').value=lastEmail;
-      switchAuthTab('in');
-    }
+    if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
     showScr('sAuth');
   }
+
+  // Fade splash out
+  splash.style.opacity='0';
+  setTimeout(()=>{splash.style.display='none';},500);
 }
 
 sb.auth.onAuthStateChange((event,session)=>{
