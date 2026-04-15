@@ -607,7 +607,9 @@ function fileToBase64(file){
 
 // ── SCREENS ──
 function showScr(id){
-  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.scr').forEach(s=>{
+    if(s.id!=='sSplash') s.classList.remove('on');
+  });
   $(id).classList.add('on');
 }
 function goHome(){applyScreenshotBlock(false);showScr('sHome');renderNotes();}
@@ -1457,34 +1459,37 @@ async function boot(){
   const splash=$('sSplash');
   const logo=$('splashLogo');
 
-  // Start with auth hidden, show splash on top
-  showScr('sAuth'); // load auth underneath but splash covers it
-
-  // Animate logo in
+  // Animate logo in after tiny delay
   setTimeout(()=>{
     logo.style.opacity='1';
     logo.style.transform='scale(1)';
-  },100);
+  },150);
 
-  // Check session while splash shows
-  const {data:{session}}=await sb.auth.getSession();
+  // Check session in background
+  let session=null;
+  try{
+    const {data}=await sb.auth.getSession();
+    session=data.session;
+  }catch(e){}
 
-  // Hold for 2 seconds total from start
+  // Always wait 2s total on splash
   await new Promise(r=>setTimeout(r,2000));
 
-  // Decide what's underneath before fading splash
+  // Navigate to right screen UNDER the splash
   if(session?.user){
-    // pre-load home so it's ready when splash fades
     await afterAuth(session.user);
   } else {
     const lastEmail=localStorage.getItem('skynote_last_email');
     if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
-    showScr('sAuth');
+    // make auth visible
+    document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+    $('sAuth').classList.add('on');
   }
 
-  // Fade splash out
+  // Now fade splash out
   splash.style.opacity='0';
-  setTimeout(()=>{splash.style.display='none';},500);
+  await new Promise(r=>setTimeout(r,500));
+  splash.style.display='none';
 }
 
 sb.auth.onAuthStateChange((event,session)=>{
