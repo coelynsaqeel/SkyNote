@@ -294,18 +294,27 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .ed-body.vertical-mode{overflow-y:auto;display:flex;flex-direction:column}
 .ed-body.vertical-mode .ed-content{min-height:100%}
 
+
+/* ── SPLASH: pure CSS overlay, no JS needed ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;z-index:9999;
+  background:#000 url(icon-192.png) center/110px no-repeat;
+  animation:splashFade 2.8s ease forwards;
+  pointer-events:none;
+}
+@keyframes splashFade{
+  0%{opacity:1}
+  65%{opacity:1}
+  100%{opacity:0;visibility:hidden}
+}
 </style>
 </head>
 <body>
 <div class="phone" id="phone">
 
-<!-- SPLASH SCREEN -->
-<div class="scr on" id="sSplash" style="background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;position:absolute;inset:0;z-index:999;transition:opacity .5s ease">
-  <img src="icon-192.png" id="splashLogo" style="width:110px;height:110px;border-radius:28px;opacity:0;transition:opacity .5s ease,transform .6s ease;transform:scale(.8)"/>
-</div>
-
 <!-- AUTH -->
-<div class="scr" id="sAuth">
+<div class="scr on" id="sAuth">
   <div class="auth-wrap">
     <div style="font-size:26px;font-weight:300;color:var(--text);letter-spacing:-1px;margin-bottom:28px">Sky<b style="font-weight:600">Note</b></div>
     <div class="auth-tabs">
@@ -607,9 +616,7 @@ function fileToBase64(file){
 
 // ── SCREENS ──
 function showScr(id){
-  document.querySelectorAll('.scr').forEach(s=>{
-    if(s.id!=='sSplash') s.classList.remove('on');
-  });
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $(id).classList.add('on');
 }
 function goHome(){applyScreenshotBlock(false);showScr('sHome');renderNotes();}
@@ -1455,48 +1462,20 @@ async function doFind(){
 }
 
 // ── BOOT ──
-async function boot(){
-  const splash=$('sSplash');
-  const logo=$('splashLogo');
-
-  // Animate logo in after tiny delay
-  setTimeout(()=>{
-    logo.style.opacity='1';
-    logo.style.transform='scale(1)';
-  },150);
-
-  // Check session in background
-  let session=null;
+(async()=>{
   try{
-    const {data}=await sb.auth.getSession();
-    session=data.session;
-  }catch(e){}
-
-  // Always wait 2s total on splash
-  await new Promise(r=>setTimeout(r,2000));
-
-  // Navigate to right screen UNDER the splash
-  if(session?.user){
-    await afterAuth(session.user);
-  } else {
-    const lastEmail=localStorage.getItem('skynote_last_email');
-    if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
-    // make auth visible
-    document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
-    $('sAuth').classList.add('on');
+    const {data:{session}}=await sb.auth.getSession();
+    if(session?.user){
+      await afterAuth(session.user);
+    } else {
+      const lastEmail=localStorage.getItem('skynote_last_email');
+      if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
+      showScr('sAuth');
+    }
+  }catch(e){
+    showScr('sAuth');
   }
-
-  // Now fade splash out
-  splash.style.opacity='0';
-  await new Promise(r=>setTimeout(r,500));
-  splash.style.display='none';
-}
-
-sb.auth.onAuthStateChange((event,session)=>{
-  if(event==='SIGNED_OUT'||!session){currentUser=null;}
-});
-
-boot();
+})();
 
 // ── SERVICE WORKER ──
 if('serviceWorker' in navigator){
