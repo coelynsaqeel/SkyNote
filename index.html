@@ -632,7 +632,54 @@ async function doAuth(){
   const email=$('authEmail').value.trim();
   const pw=$('authPw').value;
   const err=$('authErr');
-  if(!email||!pw){err.style.color='var(--red)';err.textContent='Please fill in all fields';return;}
+
+  if(!email||!pw){
+    err.style.color='var(--red)';
+    err.textContent='Enter email and password';
+    return;
+  }
+
+  err.textContent='';
+  $('authBtn').innerHTML='Loading...';
+  $('authBtn').disabled=true;
+
+  try{
+    if(authMode==='up'){
+      const uname=$('authUser').value.trim() || email.split('@')[0];
+
+      const { data, error } = await sb.auth.signUp({
+        email,
+        password: pw,
+        options:{
+          data:{ username: uname }
+        }
+      });
+
+      if(error) throw error;
+
+      $('confirmMsg').innerHTML =
+        'Account created.<br/>Check your email to confirm before signing in.';
+      showScr('sConfirm');
+
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({
+        email,
+        password: pw
+      });
+
+      if(error) throw error;
+
+      await afterAuth(data.user);
+    }
+
+  }catch(e){
+    err.style.color='var(--red)';
+    err.textContent=e.message || 'Auth failed';
+  }
+
+  $('authBtn').innerHTML = authMode==='in' ? 'Sign in' : 'Create account';
+  $('authBtn').disabled=false;
+}
   $('authBtn').innerHTML='<div class="spin"></div>';
   $('authBtn').disabled=true;
   try{
