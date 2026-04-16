@@ -295,16 +295,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .ed-body.vertical-mode .ed-content{min-height:100%}
 
 
-/* ── SPLASH: pure CSS overlay, no JS needed ── */
-body::before{
-  content:'';
-  position:fixed;inset:0;z-index:9999;
-  background:#000 url(icon-192.png) center/110px no-repeat;
-  animation:splashFade 2.8s ease forwards;
-  pointer-events:none;
-}
-@keyframes splashFade{
-  0%{opacity:1}
+
   65%{opacity:1}
   100%{opacity:0;visibility:hidden}
 }
