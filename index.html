@@ -293,21 +293,6 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 /* VERTICAL — top to bottom scroll (default scroll direction) */
 .ed-body.vertical-mode{overflow-y:auto;display:flex;flex-direction:column}
 .ed-body.vertical-mode .ed-content{min-height:100%}
-
-
-/* ── SPLASH: pure CSS overlay, no JS needed ── */
-body::before{
-  content:'';
-  position:fixed;inset:0;z-index:9999;
-  background:#000 url(icon-192.png) center/110px no-repeat;
-  animation:splashFade 2.8s ease forwards;
-  pointer-events:none;
-}
-@keyframes splashFade{
-  0%{opacity:1}
-  65%{opacity:1}
-  100%{opacity:0;visibility:hidden}
-}
 </style>
 </head>
 <body>
@@ -446,26 +431,24 @@ body::before{
     <input class="ed-title-in" id="edT" placeholder="Title"/>
     <button class="efbtn pri" style="flex-shrink:0;padding:8px 16px" onclick="saveHome()">Save</button>
   </div>
-  <!-- TOOLBAR: format toggle | tools | attach -->
-  <div class="ed-toolbar" style="justify-content:space-between">
-    <button class="tb-btn" id="tb-fmt-toggle" onclick="toggleFmtBar()" title="Formatting" style="font-size:17px">✏️</button>
+  <div class="ed-toolbar" style="justify-content:space-between;align-items:center">
+    <button class="tb-btn" id="tb-fmt-toggle" onclick="toggleFmtBar()" style="font-size:17px">✏️</button>
     <div id="fmtTools" style="display:none;align-items:center;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none">
-      <button class="tb-btn" id="tb-bold" onclick="toggleFmt('bold','tb-bold')"><b>B</b></button>
-      <button class="tb-btn" id="tb-italic" onclick="toggleFmt('italic','tb-italic')"><i style="font-family:serif">I</i></button>
-      <button class="tb-btn" id="tb-underline" onclick="toggleFmt('underline','tb-underline')"><u>U</u></button>
-      <button class="tb-btn" id="tb-strike" onclick="toggleFmt('strikeThrough','tb-strike')" style="text-decoration:line-through">S</button>
+      <button class="tb-btn" id="tb-bold" onclick="execFmt('bold','tb-bold')"><b>B</b></button>
+      <button class="tb-btn" id="tb-italic" onclick="execFmt('italic','tb-italic')"><i style="font-family:serif">I</i></button>
+      <button class="tb-btn" id="tb-underline" onclick="execFmt('underline','tb-underline')"><u>U</u></button>
+      <button class="tb-btn" id="tb-strike" onclick="execFmt('strikeThrough','tb-strike')" style="text-decoration:line-through">S</button>
       <div class="tb-sep"></div>
-      <button class="tb-btn" id="tb-h2" onclick="toggleBlock('h2','tb-h2')" style="font-size:12px;font-weight:700">H</button>
-      <button class="tb-btn" id="tb-ul" onclick="toggleFmt('insertUnorderedList','tb-ul')" style="font-size:16px">•</button>
-      <button class="tb-btn" id="tb-ol" onclick="toggleFmt('insertOrderedList','tb-ol')" style="font-size:12px">1.</button>
-      <button class="tb-btn" onclick="insertHR()" style="font-size:16px;color:var(--text3)">—</button>
+      <button class="tb-btn" id="tb-h2" onclick="execBlock('h2','tb-h2')" style="font-size:12px;font-weight:700">H</button>
+      <button class="tb-btn" id="tb-ul" onclick="execFmt('insertUnorderedList','tb-ul')" style="font-size:16px">•</button>
+      <button class="tb-btn" id="tb-ol" onclick="execFmt('insertOrderedList','tb-ol')" style="font-size:12px">1.</button>
+      <button class="tb-btn" onclick="execHR()" style="font-size:16px;color:var(--text3)">—</button>
     </div>
     <div style="flex:1" id="fmtSpacer"></div>
-    <button class="tb-btn" onclick="showAttachMenu()" title="Attach" style="font-size:17px">📎</button>
+    <button class="tb-btn" onclick="openAttachSheet()" style="font-size:17px">📎</button>
   </div>
-
   <div class="ed-body" id="edBody">
-    <div class="ed-content style-plain" id="edContent" contenteditable="true" data-placeholder="Start writing…" oninput="updateWC();updateToolbarState()"></div>
+    <div class="ed-content" id="edContent" contenteditable="true" data-placeholder="Start writing…" oninput="updateWC()"></div>
   </div>
   <div class="ed-attach-bar" id="attachBar" style="display:none"></div>
   <div class="ed-footer">
@@ -473,9 +456,10 @@ body::before{
     <button class="efbtn del" onclick="confirmDelete()">Delete</button>
     <button class="efbtn lk" id="lockBtn" onclick="goSetupFromEditor()">🔓 Unlocked</button>
   </div>
-  <input type="file" id="imgIn" accept="image/*" style="display:none" onchange="handleImg(event)"/>
-  <input type="file" id="fileIn" style="display:none" onchange="handleFile(event)"/>
-  <input type="file" id="audioIn" accept="audio/*" style="display:none" onchange="handleAudio(event)"/>
+  <input type="file" id="imgIn" accept="image/*" style="display:none" onchange="onImgPick(event)"/>
+  <input type="file" id="camIn" accept="image/*" capture="environment" style="display:none" onchange="onImgPick(event)"/>
+  <input type="file" id="fileIn" style="display:none" onchange="onFilePick(event)"/>
+  <input type="file" id="audioIn" accept="audio/*" style="display:none" onchange="onAudioPick(event)"/>
 </div>
 
 <!-- FIND -->
@@ -1120,220 +1104,190 @@ async function goEditor(){
 }
 
 // ── EDITOR ──
-let currentNoteStyle='plain';
-let currentScrollMode='vertical'; // 'vertical' or 'book'
-let currentLineStyle='plain';     // 'plain' or 'ruled'
+let currentNoteStyle='vertical-plain';
+let currentScrollMode='vertical';
+let currentLineStyle='plain';
 let fmtBarOpen=false;
 
-function toggleFmtBar(){
-  fmtBarOpen=!fmtBarOpen;
-  const tools=$('fmtTools');
-  const spacer=$('fmtSpacer');
-  const toggle=$('tb-fmt-toggle');
-  tools.style.display=fmtBarOpen?'flex':'none';
-  spacer.style.display=fmtBarOpen?'none':'block';
-  toggle.classList.toggle('active',fmtBarOpen);
-}
-
-function closeSheetIfOpen(){
-  // tap on editor body closes any open sheet
-  const sa=$('sheetArea');
-  if(sa && sa.innerHTML.trim()) closeSheet();
-}
-
-function toggleScrollMode(){
-  currentScrollMode=currentScrollMode==='vertical'?'book':'vertical';
-  applyNoteStyle();
-  const btn=$('tb-scroll');
-  if(btn){btn.textContent=currentScrollMode==='book'?'📖':'📜';btn.title=currentScrollMode==='book'?'Book (L/R)':'Vertical (U/D)';}
-}
-
-function applyNoteStyle(){
-  const content=$('edContent');
-  const body=$('edBody');
-  content.className='ed-content';
-  body.className='ed-body';
-  if(currentScrollMode==='book'){body.classList.add('book-mode');}
-  else{body.classList.add('vertical-mode');}
-  currentNoteStyle=currentScrollMode+'-plain';
-}
-
-function setNoteStyle(combined){
-  // combined = 'vertical-plain', 'vertical-ruled', 'book-plain', 'book-ruled'
-  const parts=(combined||'vertical-plain').split('-');
-  currentScrollMode=parts[0]||'vertical';
-  currentLineStyle=parts[1]||'plain';
-  applyNoteStyle();
-}
-
-function fmt(cmd){document.execCommand(cmd,false,null);$('edContent').focus();updateToolbarState();}
-function fmtBlock(tag){document.execCommand('formatBlock',false,'<'+tag+'>');$('edContent').focus();updateToolbarState();}
-function insertHR(){document.execCommand('insertHTML',false,'<hr/>');$('edContent').focus();}
-
-function toggleFmt(cmd,btnId){
+function execFmt(cmd,btnId){
   document.execCommand(cmd,false,null);
-  $('edContent').focus();
-  updateToolbarState();
+  if($('edContent')) $('edContent').focus();
+  setTimeout(updateToolbarState,10);
 }
-
-function toggleBlock(tag,btnId){
+function execBlock(tag,btnId){
   const val=document.queryCommandValue('formatBlock');
-  if(val===tag){document.execCommand('formatBlock',false,'<p>');}
-  else{document.execCommand('formatBlock',false,'<'+tag+'>');}
-  $('edContent').focus();
-  updateToolbarState();
+  document.execCommand('formatBlock',false,val===tag?'<p>':'<'+tag+'>');
+  if($('edContent')) $('edContent').focus();
+  setTimeout(updateToolbarState,10);
+}
+function execHR(){
+  document.execCommand('insertHTML',false,'<hr/>');
+  if($('edContent')) $('edContent').focus();
 }
 
 function updateToolbarState(){
-  const map={bold:'tb-bold',italic:'tb-italic',underline:'tb-underline',strikeThrough:'tb-strike',insertUnorderedList:'tb-ul',insertOrderedList:'tb-ol'};
-  Object.entries(map).forEach(([cmd,id])=>{
-    const el=$(id);
-    if(el)el.classList.toggle('active',document.queryCommandState(cmd));
-  });
-  const val=document.queryCommandValue('formatBlock');
-  if($('tb-h2'))$('tb-h2').classList.toggle('active',val==='h2');
-  if($('tb-p'))$('tb-p').classList.toggle('active',val==='p'||val==='div');
+  try{
+    const map={bold:'tb-bold',italic:'tb-italic',underline:'tb-underline',strikeThrough:'tb-strike',insertUnorderedList:'tb-ul',insertOrderedList:'tb-ol'};
+    Object.entries(map).forEach(([cmd,id])=>{const el=$(id);if(el)el.classList.toggle('active',document.queryCommandState(cmd));});
+    const val=document.queryCommandValue('formatBlock');
+    if($('tb-h2'))$('tb-h2').classList.toggle('active',val==='h2');
+  }catch(e){}
 }
 
-function setNoteStyle(style){
-  currentNoteStyle=style;
-  const content=$('edContent');
-  const body=$('edBody');
-  content.className='ed-content';
-  body.className='ed-body';
-  if(style==='book'){body.classList.add('book-mode');content.classList.add('style-ruled');}
-  else if(style==='vertical'){body.classList.add('vertical-mode');content.classList.add('style-plain');}
-  else{content.classList.add('style-'+style);}
-  ['plain','ruled','grid','book','vertical'].forEach(s=>{
-    const prev=$('style-'+s);const lbl=$('slbl-'+s);
-    if(prev)prev.classList.toggle('active',s===style);
-    if(lbl)lbl.classList.toggle('active',s===style);
-  });
+function toggleFmtBar(){
+  fmtBarOpen=!fmtBarOpen;
+  const tools=$('fmtTools'),spacer=$('fmtSpacer'),btn=$('tb-fmt-toggle');
+  if(tools){tools.style.display=fmtBarOpen?'flex':'none';}
+  if(spacer){spacer.style.display=fmtBarOpen?'none':'block';}
+  if(btn){btn.classList.toggle('active',fmtBarOpen);}
 }
 
-function showAttachMenu(){
-  const menu=document.createElement('div');
-  menu.className='attach-menu-ovl';
-  menu.id='attachOvl';
-  menu.innerHTML=`
-    <div class="attach-menu">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <span class="attach-menu-title" style="margin-bottom:0">Add to note</span>
-        <button style="background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:2px 6px" onclick="closeSheet()">✕</button>
-      </div>
-      <div class="attach-grid">
-        <div class="attach-opt" onclick="attachAction('camera')"><div class="attach-opt-icon">📷</div><div class="attach-opt-label">Camera</div></div>
-        <div class="attach-opt" onclick="attachAction('gallery')"><div class="attach-opt-icon">🖼️</div><div class="attach-opt-label">Gallery</div></div>
-        <div class="attach-opt" onclick="attachAction('file')"><div class="attach-opt-icon">📄</div><div class="attach-opt-label">File</div></div>
-        <div class="attach-opt" onclick="attachAction('audio')"><div class="attach-opt-icon">🎵</div><div class="attach-opt-label">Audio</div></div>
-        <div class="attach-opt" onclick="attachAction('link')"><div class="attach-opt-icon">🔗</div><div class="attach-opt-label">Link</div></div>
-        <div class="attach-opt" onclick="attachAction('table')"><div class="attach-opt-icon">📊</div><div class="attach-opt-label">Table</div></div>
-        <div class="attach-opt" onclick="attachAction('checklist')"><div class="attach-opt-icon">☑️</div><div class="attach-opt-label">Checklist</div></div>
-        <div class="attach-opt" onclick="attachAction('date')"><div class="attach-opt-icon">📅</div><div class="attach-opt-label">Date</div></div>
-      </div>
-    </div>`;
-  menu.addEventListener('click',e=>{if(e.target===menu)closeSheet();});
-  $('sheetArea').innerHTML='';
-  $('sheetArea').appendChild(menu);
-}
-
-function attachAction(type){
+// ── ATTACH SHEET ──
+function openAttachSheet(){
+  // Build sheet as real DOM — no innerHTML with event handlers
   closeSheet();
-  // Use setTimeout so the sheet closes before triggering file dialog
-  setTimeout(()=>{
-    if(type==='camera'){
-      const inp=document.createElement('input');
-      inp.type='file';inp.accept='image/*';inp.capture='environment';
-      inp.style.display='none';
-      document.body.appendChild(inp);
-      inp.onchange=e=>{handleImg(e);document.body.removeChild(inp);};
-      inp.click();
-    } else if(type==='gallery'){
-      const inp=document.createElement('input');
-      inp.type='file';inp.accept='image/*';
-      inp.style.display='none';
-      document.body.appendChild(inp);
-      inp.onchange=e=>{handleImg(e);document.body.removeChild(inp);};
-      inp.click();
-    } else if(type==='file'){
-      $('fileIn').value='';$('fileIn').click();
-    } else if(type==='audio'){
-      $('audioIn').value='';$('audioIn').click();
-    } else if(type==='link'){
-      const url=prompt('Enter URL:');
-      if(url){
-        $('edContent').focus();
-        const text=prompt('Link label (leave blank to use URL):')||url;
-        document.execCommand('insertHTML',false,`<a href="${url}" target="_blank" style="color:var(--blue)">${text}</a>`);
-      }
-    } else if(type==='table'){
+  const ovl=document.createElement('div');
+  ovl.style.cssText='position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;border-radius:44px';
+  ovl.addEventListener('click',e=>{if(e.target===ovl)closeSheet();});
+
+  const sheet=document.createElement('div');
+  sheet.style.cssText='background:var(--surface);border-radius:24px 24px 0 0;padding:16px 16px 40px;width:100%';
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:16px';
+  const title=document.createElement('span');
+  title.style.cssText='font-size:12px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;font-family:var(--mono)';
+  title.textContent='Add to note';
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;padding:0 4px;line-height:1';
+  closeBtn.textContent='✕';
+  closeBtn.addEventListener('click',closeSheet);
+  hdr.appendChild(title);hdr.appendChild(closeBtn);
+  sheet.appendChild(hdr);
+
+  // Grid
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:10px';
+
+  const items=[
+    {icon:'📷',label:'Camera',fn:()=>doAttach('camera')},
+    {icon:'🖼️',label:'Gallery',fn:()=>doAttach('gallery')},
+    {icon:'📄',label:'File',fn:()=>doAttach('file')},
+    {icon:'🎵',label:'Audio',fn:()=>doAttach('audio')},
+    {icon:'🔗',label:'Link',fn:()=>doAttach('link')},
+    {icon:'📊',label:'Table',fn:()=>doAttach('table')},
+    {icon:'☑️',label:'Checklist',fn:()=>doAttach('checklist')},
+    {icon:'📅',label:'Date',fn:()=>doAttach('date')},
+  ];
+
+  items.forEach(item=>{
+    const opt=document.createElement('div');
+    opt.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:10px 0;border-radius:12px;transition:background .15s';
+    opt.addEventListener('click',()=>{closeSheet();setTimeout(item.fn,150);});
+
+    const iconBox=document.createElement('div');
+    iconBox.style.cssText='width:52px;height:52px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px';
+    iconBox.textContent=item.icon;
+
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-size:11px;color:var(--text2);font-family:var(--mono);text-align:center';
+    lbl.textContent=item.label;
+
+    opt.appendChild(iconBox);opt.appendChild(lbl);
+    grid.appendChild(opt);
+  });
+
+  sheet.appendChild(grid);
+  ovl.appendChild(sheet);
+  $('sheetArea').appendChild(ovl);
+}
+
+function doAttach(type){
+  if(type==='camera'){$('camIn').value='';$('camIn').click();}
+  else if(type==='gallery'){$('imgIn').value='';$('imgIn').click();}
+  else if(type==='file'){$('fileIn').value='';$('fileIn').click();}
+  else if(type==='audio'){$('audioIn').value='';$('audioIn').click();}
+  else if(type==='link'){
+    const url=prompt('Enter URL:');
+    if(url){
+      const text=prompt('Link text (or leave blank):')||url;
       $('edContent').focus();
-      let html='<table style="width:100%;border-collapse:collapse;margin:8px 0">';
-      for(let r=0;r<2;r++){html+='<tr>';for(let cc=0;cc<3;cc++){html+=`<td style="border:1px solid var(--border);padding:6px 8px;min-width:60px">&nbsp;</td>`;}html+='</tr>';}
-      html+='</table><p><br></p>';
-      document.execCommand('insertHTML',false,html);
-    } else if(type==='checklist'){
-      $('edContent').focus();
-      document.execCommand('insertHTML',false,'<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><input type="checkbox"/><span>Item</span></div>');
-    } else if(type==='date'){
-      $('edContent').focus();
-      const str=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-      document.execCommand('insertHTML',false,`<div style="color:var(--text3);font-family:var(--mono);font-size:13px;margin:4px 0">${str}</div>`);
+      document.execCommand('insertHTML',false,'<a href="'+url+'" target="_blank" style="color:var(--blue)">'+text+'</a>');
     }
-  },150);
+  }
+  else if(type==='table'){
+    $('edContent').focus();
+    let h='<table style="width:100%;border-collapse:collapse;margin:8px 0">';
+    for(let r=0;r<2;r++){h+='<tr>';for(let d=0;d<3;d++)h+='<td style="border:1px solid var(--border);padding:6px 8px;min-width:60px">&nbsp;</td>';h+='</tr>';}
+    h+='</table><p><br></p>';
+    document.execCommand('insertHTML',false,h);
+  }
+  else if(type==='checklist'){
+    $('edContent').focus();
+    document.execCommand('insertHTML',false,'<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><input type="checkbox"/><span>Item</span></div>');
+  }
+  else if(type==='date'){
+    $('edContent').focus();
+    const s=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    document.execCommand('insertHTML',false,'<div style="color:var(--text3);font-family:var(--mono);font-size:13px;margin:4px 0">'+s+'</div>');
+  }
 }
 
-
-function updateWC(){
-  const text=($('edContent').innerText||'').trim();
-  const words=text?text.split(/\s+/).filter(Boolean).length:0;
-  $('wcDisplay').textContent=words+' word'+(words!==1?'s':'');
-}
-
-async function handleImg(e){
+async function onImgPick(e){
   const file=e.target.files[0];if(!file)return;
   const b64=await fileToBase64(file);
-  document.execCommand('insertHTML',false,`<img src="${b64}" style="width:100%;max-width:100%;border-radius:10px;display:block;margin:8px 0"/>`);
-  $('edContent').focus();e.target.value='';
+  $('edContent').focus();
+  document.execCommand('insertHTML',false,'<img src="'+b64+'" style="width:100%;max-width:100%;border-radius:10px;display:block;margin:8px 0"/>');
+  e.target.value='';
+  updateWC();
 }
 
-async function handleFile(e){
+async function onFilePick(e){
   const file=e.target.files[0];if(!file)return;
   const b64=await fileToBase64(file);
   if(!noteAttachments[editing])noteAttachments[editing]=[];
   noteAttachments[editing].push({name:file.name,data:b64,type:file.type});
-  renderAttachBar();e.target.value='';
+  renderAttachBar();
+  e.target.value='';
 }
 
-async function handleAudio(e){
+async function onAudioPick(e){
   const file=e.target.files[0];if(!file)return;
   const b64=await fileToBase64(file);
+  $('edContent').focus();
+  document.execCommand('insertHTML',false,'<audio controls src="'+b64+'" style="width:100%;margin:8px 0;display:block"></audio>');
   if(!noteAttachments[editing])noteAttachments[editing]=[];
   noteAttachments[editing].push({name:file.name,data:b64,type:file.type});
-  document.execCommand('insertHTML',false,`<audio controls src="${b64}" style="width:100%;margin:8px 0"></audio>`);
-  renderAttachBar();e.target.value='';
+  renderAttachBar();
+  e.target.value='';
+  updateWC();
 }
 
 function renderAttachBar(){
   const bar=$('attachBar');
   const atts=noteAttachments[editing]||[];
-  if(!atts.length){bar.style.display='none';return;}
-  bar.style.display='flex';
-  bar.innerHTML=atts.map((a,i)=>`
-    <div class="attach-chip">
-      <span onclick="openAttach(${i})">📎 ${a.name}</span>
-      <span class="attach-x" onclick="removeAttach(${i})">×</span>
-    </div>`).join('');
+  if(!atts.length){if(bar)bar.style.display='none';return;}
+  if(bar){
+    bar.style.display='flex';
+    bar.innerHTML='';
+    atts.forEach((a,i)=>{
+      const chip=document.createElement('div');
+      chip.className='attach-chip';
+      chip.innerHTML='<span>📎 '+a.name+'</span><span class="attach-x" style="cursor:pointer;margin-left:6px;color:var(--red)">×</span>';
+      chip.querySelector('span').addEventListener('click',()=>openAttach(i));
+      chip.querySelector('.attach-x').addEventListener('click',()=>removeAttach(i));
+      bar.appendChild(chip);
+    });
+  }
 }
 
 function openAttach(i){
   const a=(noteAttachments[editing]||[])[i];if(!a)return;
-  const win=window.open();
-  win.document.write(`<html><body style="margin:0;background:#000;display:flex;flex-direction:column;align-items:center">
-    <a href="${a.data}" download="${a.name}" style="color:#fff;font-family:sans-serif;padding:14px;font-size:15px">⬇ Download ${a.name}</a>
-    ${a.type.startsWith('image/')?`<img src="${a.data}" style="max-width:100%;max-height:90vh"/>`:''}
-    ${a.type.startsWith('audio/')?`<audio controls src="${a.data}" style="width:90%;margin:20px auto"></audio>`:''}
-  </body></html>`);
+  const win=window.open('','_blank');
+  if(win){
+    win.document.write('<html><body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;padding:20px"><a href="'+a.data+'" download="'+a.name+'" style="color:#fff;font-size:16px;margin-bottom:16px;text-decoration:none">⬇ Download '+a.name+'</a>'+(a.type.startsWith('image/')?'<img src="'+a.data+'" style="max-width:100%;border-radius:10px"/>':(a.type.startsWith('audio/')?'<audio controls src="'+a.data+'" style="width:90%"></audio>':''))+'</body></html>');
+  }
 }
 
 function removeAttach(i){
@@ -1341,6 +1295,111 @@ function removeAttach(i){
   renderAttachBar();
 }
 
+function updateWC(){
+  const el=$('edContent');
+  if(!el)return;
+  const text=(el.innerText||'').trim();
+  const words=text?text.split(/\s+/).filter(Boolean).length:0;
+  const wc=$('wcDisplay');
+  if(wc)wc.textContent=words+' word'+(words!==1?'s':'');
+}
+
+function applyNoteStyle(){
+  const content=$('edContent');
+  const body=$('edBody');
+  if(!content||!body)return;
+  content.className='ed-content';
+  body.className='ed-body';
+  if(currentScrollMode==='book'){body.classList.add('book-mode');}
+  else{body.classList.add('vertical-mode');}
+}
+
+function setNoteStyle(combined){
+  const parts=(combined||'vertical-plain').split('-');
+  currentScrollMode=parts[0]||'vertical';
+  currentLineStyle=parts[1]||'plain';
+  applyNoteStyle();
+}
+
+function loadEd(id){
+  const n=notes.find(x=>x.id===id);if(!n)return;
+  editing=id;
+  const t=$('edT');if(t)t.value=n.title;
+  const content=$('edContent');if(content)content.innerHTML=n.body||'';
+  updateWC();
+  const locked=n.locked;
+  const lb=$('lockBtn');
+  if(lb){lb.textContent=locked?'🔒 Locked':'🔓 Unlocked';lb.className='efbtn '+(locked?'lk':'');}
+  if(!noteAttachments[id])noteAttachments[id]=n.attachments||[];
+  renderAttachBar();
+  setNoteStyle(n.noteStyle||'vertical-plain');
+}
+
+// ── SETUP ──
+function toggleLock(){isLocked=!isLocked;$('ltog').className='tog'+(isLocked?' on':'');}
+function toggleScreenshot(){blockScreenshot=!blockScreenshot;$('screenshotTog').className='tog'+(blockScreenshot?' on':'');}
+
+function applyScreenshotBlock(block){
+  // CSS-based: makes content invisible to screen capture APIs on Android Chrome
+  // by overlaying a transparent element and using CSS filter trick
+  const el=$('phone');
+  if(block){
+    el.style.filter='opacity(0.9999)'; // triggers GPU layer — blocks some screenshot APIs
+    document.body.style.userSelect='none';
+    document.body.style.webkitUserSelect='none';
+    // For Android WebView (TWA/PWABuilder) this is enforced natively
+    if(window.screen && window.screen.orientation){
+      try{window.androidScreenshot && window.androidScreenshot.block(true);}catch(e){}
+    }
+  } else {
+    el.style.filter='';
+    document.body.style.userSelect='';
+    document.body.style.webkitUserSelect='';
+    try{window.androidScreenshot && window.androidScreenshot.block(false);}catch(e){}
+  }
+}
+
+function goSetup(id){
+  editing=id;
+  let pw={l:'',n:'',s:'',order:['l','n','s']};isLocked=true;blockScreenshot=false;
+  if(id){const n=notes.find(x=>x.id===id);if(n){pw=n.pw||{l:'',n:'',s:'',order:['l','n','s']};isLocked=n.locked;blockScreenshot=n.blockScreenshot||false;}}
+  setupOrder=[...(pw.order||['l','n','s'])];
+  $('serr').textContent='';
+  $('ltog').className='tog'+(isLocked?' on':'');
+  $('screenshotTog').className='tog'+(blockScreenshot?' on':'');
+  $('setupT').textContent=id?'Edit password':'Set password';
+  $('setupUfVal').textContent=username;
+  renderDragList('setupDragList',setupOrder,{l:pw.l||'',n:pw.n||'',s:pw.s||''});
+  showScr('sSetup');
+}
+
+function buildPw(n){return(n.pw.order||['l','n','s']).map(k=>n.pw[k]||'').join('')+n.author;}
+
+async function goEditor(){
+  const vals=getValsFromList('setupDragList',setupOrder);
+  const l=vals.l.trim(),n=vals.n.trim(),s=vals.s.trim(),err=$('serr');
+  if(!l){err.textContent='Letters field is required';return;}
+  if(!n){err.textContent='Numbers field is required';return;}
+  if(!s){err.textContent='Symbols field is required';return;}
+  err.textContent='';
+  const pw={l,n,s,order:[...setupOrder]};
+  if(editing){
+    const nx=notes.find(x=>x.id===editing);
+    if(nx){nx.pw=pw;nx.locked=isLocked;nx.blockScreenshot=blockScreenshot;await saveNoteToDB(nx);}
+    loadEd(editing);
+  } else {
+    const nx={id:'tmp_'+Date.now(),title:'',body:'',locked:isLocked,blockScreenshot,pw,author:username,attachments:[]};
+    noteAttachments[nx.id]=[];
+    notes.unshift(nx);
+    editing=nx.id;
+    await saveNoteToDB(nx);
+    editing=nx.id;
+    loadEd(editing);
+  }
+  showScr('sEditor');
+}
+
+// ── EDITOR ──
 function goSetupFromEditor(){
   goSetup(editing);
   setTimeout(()=>{
