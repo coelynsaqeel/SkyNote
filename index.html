@@ -295,7 +295,16 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .ed-body.vertical-mode .ed-content{min-height:100%}
 
 
-
+/* ── SPLASH: pure CSS overlay, no JS needed ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;z-index:9999;
+  background:#000 url(icon-192.png) center/110px no-repeat;
+  animation:splashFade 2.8s ease forwards;
+  pointer-events:none;
+}
+@keyframes splashFade{
+  0%{opacity:1}
   65%{opacity:1}
   100%{opacity:0;visibility:hidden}
 }
@@ -632,54 +641,7 @@ async function doAuth(){
   const email=$('authEmail').value.trim();
   const pw=$('authPw').value;
   const err=$('authErr');
-
-  if(!email||!pw){
-    err.style.color='var(--red)';
-    err.textContent='Enter email and password';
-    return;
-  }
-
-  err.textContent='';
-  $('authBtn').innerHTML='Loading...';
-  $('authBtn').disabled=true;
-
-  try{
-    if(authMode==='up'){
-      const uname=$('authUser').value.trim() || email.split('@')[0];
-
-      const { data, error } = await sb.auth.signUp({
-        email,
-        password: pw,
-        options:{
-          data:{ username: uname }
-        }
-      });
-
-      if(error) throw error;
-
-      $('confirmMsg').innerHTML =
-        'Account created.<br/>Check your email to confirm before signing in.';
-      showScr('sConfirm');
-
-    } else {
-      const { data, error } = await sb.auth.signInWithPassword({
-        email,
-        password: pw
-      });
-
-      if(error) throw error;
-
-      await afterAuth(data.user);
-    }
-
-  }catch(e){
-    err.style.color='var(--red)';
-    err.textContent=e.message || 'Auth failed';
-  }
-
-  $('authBtn').innerHTML = authMode==='in' ? 'Sign in' : 'Create account';
-  $('authBtn').disabled=false;
-}
+  if(!email||!pw){err.style.color='var(--red)';err.textContent='Please fill in all fields';return;}
   $('authBtn').innerHTML='<div class="spin"></div>';
   $('authBtn').disabled=true;
   try{
@@ -1018,21 +980,33 @@ function goFind(){
 }
 
 // ── DRAG ──
+function dragFieldInput(el,key){
+  if(key==='l') el.value=el.value.replace(/[^a-zA-Z]/g,'');
+  else if(key==='n') el.value=el.value.replace(/[^0-9]/g,'');
+  else el.value=el.value.replace(/[a-zA-Z0-9]/g,'');
+}
+
 function renderDragList(listId,order,vals){
-  const list=$(listId);list.innerHTML='';
+  const list=$(listId);if(!list)return;list.innerHTML='';
   order.forEach((k,i)=>{
     const item=document.createElement('div');
     item.className='drag-item';item.dataset.key=k;item.dataset.idx=i;
-    item.innerHTML=`
-      <div class="drag-handle"><span></span><span></span><span></span></div>
-      <div class="drag-field-wrap">
-        <div class="drag-field-label">${NAMES[k]}</div>
-        <input class="drag-field" data-key="${k}" type="${k==='n'?'tel':'text'}"
-          placeholder="${k==='l'?'letters':k==='n'?'numbers':'symbols'}"
-          value="${vals[k]||''}"
-          oninput="${k==='l'?"this.value=this.value.replace(/[^a-zA-Z]/g,'')":k==='n'?"this.value=this.value.replace(/[^0-9]/g,'')":"this.value=this.value.replace(/[a-zA-Z0-9]/g,'')"}"
-        />
-      </div>`;
+    const wrap=document.createElement('div');
+    wrap.className='drag-field-wrap';
+    const lbl=document.createElement('div');
+    lbl.className='drag-field-label';lbl.textContent=NAMES[k];
+    const inp=document.createElement('input');
+    inp.className='drag-field';
+    inp.dataset.key=k;
+    inp.type=k==='n'?'tel':'text';
+    inp.placeholder=k==='l'?'letters':k==='n'?'numbers':'symbols';
+    inp.value=vals[k]||'';
+    inp.addEventListener('input',()=>dragFieldInput(inp,k));
+    wrap.appendChild(lbl);wrap.appendChild(inp);
+    const handle=document.createElement('div');
+    handle.className='drag-handle';
+    handle.innerHTML='<span></span><span></span><span></span>';
+    item.appendChild(handle);item.appendChild(wrap);
     attachDrag(item,listId,order);
     list.appendChild(item);
   });
@@ -1182,7 +1156,7 @@ function applyNoteStyle(){
   currentNoteStyle=currentScrollMode+'-plain';
 }
 
-function setNoteStyle(combined){{
+function setNoteStyle(combined){
   // combined = 'vertical-plain', 'vertical-ruled', 'book-plain', 'book-ruled'
   const parts=(combined||'vertical-plain').split('-');
   currentScrollMode=parts[0]||'vertical';
@@ -1522,9 +1496,11 @@ if('serviceWorker' in navigator){
   });
 }
 
-// init drag lists
-renderDragList('setupDragList',setupOrder,{l:'',n:'',s:''});
-renderDragList('findDragList',findOrder,{l:'',n:'',s:''});
+// init
+window.addEventListener('DOMContentLoaded',()=>{
+  renderDragList('setupDragList',setupOrder,{l:'',n:'',s:''});
+  renderDragList('findDragList',findOrder,{l:'',n:'',s:''});
+});
 
 </script>
 </body>
