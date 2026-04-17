@@ -385,7 +385,7 @@ body::before{
     <div class="home-hdr-left">
       <h1>Sky<b>Note</b></h1>
     </div>
-    <button class="prof-btn" onclick="goProfile()"><span class="prof-init" id="pInit">SK</span></button>
+    <button class="prof-btn" onclick="goProfile()" id="homeProfBtn"><span class="prof-init" id="pInit">SK</span></button>
   </div>
   <div class="nlist" id="nlist"></div>
   <div class="fab-area">
@@ -444,13 +444,11 @@ body::before{
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
     </button>
     <input class="ed-title-in" id="edT" placeholder="Title"/>
-    <button class="prof-btn" onclick="goProfile()" style="flex-shrink:0;width:32px;height:32px"><span class="prof-init" id="edProfInit">SK</span></button>
+    <button class="efbtn pri" style="flex-shrink:0;padding:8px 16px" onclick="saveHome()">Save</button>
   </div>
-  <!-- SINGLE TOOLBAR ROW: format icon | tools | page icon | attach icon -->
+  <!-- TOOLBAR: format toggle | tools | attach -->
   <div class="ed-toolbar" style="justify-content:space-between">
-    <!-- LEFT: format toggle -->
     <button class="tb-btn" id="tb-fmt-toggle" onclick="toggleFmtBar()" title="Formatting" style="font-size:17px">✏️</button>
-    <!-- FORMAT TOOLS (hidden by default, shown when toggle active) -->
     <div id="fmtTools" style="display:none;align-items:center;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none">
       <button class="tb-btn" id="tb-bold" onclick="toggleFmt('bold','tb-bold')"><b>B</b></button>
       <button class="tb-btn" id="tb-italic" onclick="toggleFmt('italic','tb-italic')"><i style="font-family:serif">I</i></button>
@@ -463,13 +461,10 @@ body::before{
       <button class="tb-btn" onclick="insertHR()" style="font-size:16px;color:var(--text3)">—</button>
     </div>
     <div style="flex:1" id="fmtSpacer"></div>
-    <!-- MIDDLE: scroll mode toggle -->
-    <button class="tb-btn" id="tb-scroll" onclick="toggleScrollMode()" title="Scroll mode" style="font-size:17px">📜</button>
-    <!-- RIGHT: attach -->
     <button class="tb-btn" onclick="showAttachMenu()" title="Attach" style="font-size:17px">📎</button>
   </div>
 
-  <div class="ed-body" id="edBody" onclick="closeSheetIfOpen()">
+  <div class="ed-body" id="edBody">
     <div class="ed-content style-plain" id="edContent" contenteditable="true" data-placeholder="Start writing…" oninput="updateWC();updateToolbarState()"></div>
   </div>
   <div class="ed-attach-bar" id="attachBar" style="display:none"></div>
@@ -909,8 +904,15 @@ function loadPfp(){
   if(b64){
     const avDiv=$('profAvDiv');
     if(avDiv)avDiv.innerHTML=`<img src="${b64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
-    const edProf=$('edProfInit');
-    if(edProf){edProf.style.backgroundImage=`url(${b64})`;edProf.style.backgroundSize='cover';edProf.style.backgroundPosition='center';edProf.style.color='transparent';}
+    // Update home profile button
+    const homeBtn=$('homeProfBtn');
+    if(homeBtn){
+      homeBtn.style.backgroundImage=`url(${b64})`;
+      homeBtn.style.backgroundSize='cover';
+      homeBtn.style.backgroundPosition='center';
+      const init=$('pInit');
+      if(init)init.style.display='none';
+    }
   }
 }
 
@@ -1210,73 +1212,77 @@ function setNoteStyle(style){
 }
 
 function showAttachMenu(){
-  $('sheetArea').innerHTML=`
-    <div class="attach-menu-ovl" onclick="if(event.target===this)closeSheet()">
-      <div class="attach-menu">
-        <div class="attach-menu-handle"></div>
-        <div class="attach-menu-title">Add to note</div>
-        <div class="attach-grid">
-          <div class="attach-opt" onclick="closeSheet();openCamera()">
-            <div class="attach-opt-icon">📷</div>
-            <div class="attach-opt-label">Camera</div>
-          </div>
-          <div class="attach-opt" onclick="closeSheet();openGallery()">
-            <div class="attach-opt-icon">🖼️</div>
-            <div class="attach-opt-label">Gallery</div>
-          </div>
-          <div class="attach-opt" onclick="closeSheet();$('fileIn').click()">
-            <div class="attach-opt-icon">📄</div>
-            <div class="attach-opt-label">File</div>
-          </div>
-          <div class="attach-opt" onclick="closeSheet();$('audioIn').click()">
-            <div class="attach-opt-icon">🎵</div>
-            <div class="attach-opt-label">Audio</div>
-          </div>
-          <div class="attach-opt" onclick="closeSheet();insertLink()">
-            <div class="attach-opt-icon">🔗</div>
-            <div class="attach-opt-label">Link</div>
-          </div>
-          <div class="attach-opt" onclick="closeSheet();insertTable()">
-            <div class="attach-opt-icon">📊</div>
-            <div class="attach-opt-label">Table</div>
-          </div>
-          <div class="attach-opt" onclick="closeSheet();insertCheckbox()">
-            <div class="attach-opt-icon">☑️</div>
-            <div class="attach-opt-label">Checklist</div>
-          </div>
-          <div class="attach-opt" onclick="closeSheet();insertDate()">
-            <div class="attach-opt-icon">📅</div>
-            <div class="attach-opt-label">Date</div>
-          </div>
-        </div>
+  const menu=document.createElement('div');
+  menu.className='attach-menu-ovl';
+  menu.id='attachOvl';
+  menu.innerHTML=`
+    <div class="attach-menu">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span class="attach-menu-title" style="margin-bottom:0">Add to note</span>
+        <button style="background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:2px 6px" onclick="closeSheet()">✕</button>
+      </div>
+      <div class="attach-grid">
+        <div class="attach-opt" onclick="attachAction('camera')"><div class="attach-opt-icon">📷</div><div class="attach-opt-label">Camera</div></div>
+        <div class="attach-opt" onclick="attachAction('gallery')"><div class="attach-opt-icon">🖼️</div><div class="attach-opt-label">Gallery</div></div>
+        <div class="attach-opt" onclick="attachAction('file')"><div class="attach-opt-icon">📄</div><div class="attach-opt-label">File</div></div>
+        <div class="attach-opt" onclick="attachAction('audio')"><div class="attach-opt-icon">🎵</div><div class="attach-opt-label">Audio</div></div>
+        <div class="attach-opt" onclick="attachAction('link')"><div class="attach-opt-icon">🔗</div><div class="attach-opt-label">Link</div></div>
+        <div class="attach-opt" onclick="attachAction('table')"><div class="attach-opt-icon">📊</div><div class="attach-opt-label">Table</div></div>
+        <div class="attach-opt" onclick="attachAction('checklist')"><div class="attach-opt-icon">☑️</div><div class="attach-opt-label">Checklist</div></div>
+        <div class="attach-opt" onclick="attachAction('date')"><div class="attach-opt-icon">📅</div><div class="attach-opt-label">Date</div></div>
       </div>
     </div>`;
+  menu.addEventListener('click',e=>{if(e.target===menu)closeSheet();});
+  $('sheetArea').innerHTML='';
+  $('sheetArea').appendChild(menu);
 }
 
-function openCamera(){
-  const inp=document.createElement('input');
-  inp.type='file';inp.accept='image/*';inp.capture='environment';
-  inp.onchange=e=>handleImg(e);inp.click();
+function attachAction(type){
+  closeSheet();
+  // Use setTimeout so the sheet closes before triggering file dialog
+  setTimeout(()=>{
+    if(type==='camera'){
+      const inp=document.createElement('input');
+      inp.type='file';inp.accept='image/*';inp.capture='environment';
+      inp.style.display='none';
+      document.body.appendChild(inp);
+      inp.onchange=e=>{handleImg(e);document.body.removeChild(inp);};
+      inp.click();
+    } else if(type==='gallery'){
+      const inp=document.createElement('input');
+      inp.type='file';inp.accept='image/*';
+      inp.style.display='none';
+      document.body.appendChild(inp);
+      inp.onchange=e=>{handleImg(e);document.body.removeChild(inp);};
+      inp.click();
+    } else if(type==='file'){
+      $('fileIn').value='';$('fileIn').click();
+    } else if(type==='audio'){
+      $('audioIn').value='';$('audioIn').click();
+    } else if(type==='link'){
+      const url=prompt('Enter URL:');
+      if(url){
+        $('edContent').focus();
+        const text=prompt('Link label (leave blank to use URL):')||url;
+        document.execCommand('insertHTML',false,`<a href="${url}" target="_blank" style="color:var(--blue)">${text}</a>`);
+      }
+    } else if(type==='table'){
+      $('edContent').focus();
+      let html='<table style="width:100%;border-collapse:collapse;margin:8px 0">';
+      for(let r=0;r<2;r++){html+='<tr>';for(let cc=0;cc<3;cc++){html+=`<td style="border:1px solid var(--border);padding:6px 8px;min-width:60px">&nbsp;</td>`;}html+='</tr>';}
+      html+='</table><p><br></p>';
+      document.execCommand('insertHTML',false,html);
+    } else if(type==='checklist'){
+      $('edContent').focus();
+      document.execCommand('insertHTML',false,'<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><input type="checkbox"/><span>Item</span></div>');
+    } else if(type==='date'){
+      $('edContent').focus();
+      const str=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+      document.execCommand('insertHTML',false,`<div style="color:var(--text3);font-family:var(--mono);font-size:13px;margin:4px 0">${str}</div>`);
+    }
+  },150);
 }
-function openGallery(){
-  const inp=document.createElement('input');
-  inp.type='file';inp.accept='image/*';
-  inp.onchange=e=>handleImg(e);inp.click();
-}
-function insertLink(){
-  const url=prompt('Enter URL:');
-  if(url){const text=prompt('Link text:')||url;document.execCommand('insertHTML',false,`<a href="${url}" target="_blank">${text}</a>`);}
-}
-function insertTable(){
-  let html='<table style="width:100%;border-collapse:collapse;margin:8px 0">';
-  for(let r=0;r<2;r++){html+='<tr>';for(let c=0;c<3;c++){html+=`<td style="border:1px solid var(--border);padding:6px 8px;min-width:60px" contenteditable="true">&nbsp;</td>`;}html+='</tr>';}
-  html+='</table><p><br></p>';document.execCommand('insertHTML',false,html);
-}
-function insertCheckbox(){document.execCommand('insertHTML',false,'<div><input type="checkbox" style="margin-right:8px"/> </div>');}
-function insertDate(){
-  const str=new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.execCommand('insertHTML',false,`<span style="color:var(--text3);font-family:var(--mono);font-size:13px">${str}</span><br>`);
-}
+
 
 function updateWC(){
   const text=($('edContent').innerText||'').trim();
