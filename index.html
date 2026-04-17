@@ -511,7 +511,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <span class="nav-t">Profile</span>
   </div>
   <div class="prof-hero">
-    <div style="position:relative;margin-bottom:12px;cursor:pointer" onclick="$('pfpIn').click()">
+    <div style="position:relative;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('pfpIn').click()">
       <div class="prof-av" id="profAvDiv"><span id="avTxt">SK</span></div>
       <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M8.5 2.5l1 1L3 10H2V9l6.5-6.5z"/></svg>
@@ -598,7 +598,11 @@ function showScr(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $(id).classList.add('on');
 }
-function goHome(){applyScreenshotBlock(false);showScr('sHome');renderNotes();}
+function closeSheet(){
+  const sa=$('sheetArea');
+  if(sa)sa.innerHTML='';
+}
+function goHome(){applyScreenshotBlock(false);closeSheet();showScr('sHome');renderNotes();}
 function goProfile(){
   $('profIn').value=username;
   $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
