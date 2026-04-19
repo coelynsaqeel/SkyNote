@@ -343,6 +343,25 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <div class="pc-dots" id="pcDots"></div>
     <div class="pc-grid" id="pcGrid"></div>
     <div class="pc-err" id="pcErr"></div>
+    <div style="margin-top:24px;text-align:center">
+      <span onclick="forgotPasscode()" style="font-size:13px;color:var(--blue);font-family:var(--mono);cursor:pointer;text-decoration:underline">Forgot passcode?</span>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSCODE -->
+<div class="scr" id="sForgot">
+  <div class="auth-wrap">
+    <div style="font-size:32px;margin-bottom:12px">🔑</div>
+    <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-.5px;margin-bottom:8px">Reset passcode</div>
+    <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:28px">
+      We will send a reset link to your email.<br/>After clicking it, sign in again and set a new passcode.
+    </div>
+    <button class="auth-btn" id="forgotBtn" onclick="sendPasscodeReset()">Send reset email</button>
+    <div id="forgotMsg" style="font-size:12px;text-align:center;margin-top:14px;min-height:16px;font-family:var(--mono)"></div>
+    <div style="margin-top:20px;text-align:center">
+      <span onclick="showScr('sPasscode')" style="font-size:13px;color:var(--text2);font-family:var(--mono);cursor:pointer">← Back to passcode</span>
+    </div>
   </div>
 </div>
 
@@ -601,15 +620,50 @@ function fileToBase64(file){
 }
 
 // ── SCREENS ──
+// Screen history for back button
+let scrHistory=[];
+
 function showScr(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $(id).classList.add('on');
+  // Push to browser history so phone back button works
+  if(id!=='sAuth'){
+    history.pushState({scr:id},'',location.href);
+    scrHistory.push(id);
+  }
 }
 function closeSheet(){
   const sa=$('sheetArea');
   if(sa)sa.innerHTML='';
 }
-function goHome(){applyScreenshotBlock(false);closeSheet();showScr('sHome');renderNotes();}
+function goHome(){
+  applyScreenshotBlock(false);
+  closeSheet();
+  // Clear history stack — home is the base
+  scrHistory=[];
+  history.replaceState({scr:'sHome'},'',location.href);
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  $('sHome').classList.add('on');
+  renderNotes();
+}
+
+// Phone back button handler
+window.addEventListener('popstate',e=>{
+  // If sheet is open, close it first
+  const sa=$('sheetArea');
+  if(sa&&sa.innerHTML.trim()){closeSheet();history.pushState({scr:getCurrentScr()},'',location.href);return;}
+  // Go to previous screen
+  scrHistory.pop(); // remove current
+  const prev=scrHistory.length?scrHistory[scrHistory.length-1]:'sHome';
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  $(prev).classList.add('on');
+  if(prev==='sHome'){renderNotes();applyScreenshotBlock(false);}
+});
+
+function getCurrentScr(){
+  const on=document.querySelector('.scr.on');
+  return on?on.id:'sHome';
+}
 function goProfile(){
   $('profIn').value=username;
   $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
@@ -689,10 +743,14 @@ async function afterAuth(user){
     if(session){
       localStorage.setItem('skynote_session',JSON.stringify({
         access_token:session.access_token,
-        refresh_token:session.refresh_token
+        refresh_token:session.refresh_token,
+        user_id:user.id,
+        email:user.email
       }));
     }
   }catch(ex){}
+  // Also store separately for quick check
+  localStorage.setItem('skynote_uid',user.id);
   await loadNotesFromDB();
   const stored=JSON.parse(localStorage.getItem('skynote_pc_'+user.id)||'{}');
   pcEnabled=stored.enabled!==false;
@@ -712,6 +770,7 @@ async function signOut(){
   const email=currentUser?.email||'';
   await sb.auth.signOut();
   localStorage.removeItem('skynote_session');
+  localStorage.removeItem('skynote_uid');
   currentUser=null;username='';notes=[];
   // keep email in field so they can sign back in easily
   $('authEmail').value=email;$('authPw').value='';
@@ -778,6 +837,37 @@ function savePcPrefs(){
 }
 
 // ── PASSCODE ──
+function forgotPasscode(){
+  $('forgotMsg').textContent='';
+  $('forgotBtn').textContent='Send reset email';
+  $('forgotBtn').disabled=false;
+  showScr('sForgot');
+}
+
+async function sendPasscodeReset(){
+  const email=currentUser?.email||localStorage.getItem('skynote_last_email');
+  if(!email){$('forgotMsg').style.color='var(--red)';$('forgotMsg').textContent='No email found. Please sign in first.';return;}
+  $('forgotBtn').innerHTML='<div class="spin"></div>';$('forgotBtn').disabled=true;
+  try{
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    if(error)throw error;
+    $('forgotMsg').style.color='var(--green)';
+    $('forgotMsg').textContent='Reset email sent to '+email+'! Check your inbox.';
+    $('forgotBtn').textContent='Email sent ✓';
+    // After reset, clear local passcode so they can set new one on next login
+    if(currentUser){
+      pcHash='';pcEnabled=true;
+      const stored=JSON.parse(localStorage.getItem('skynote_pc_'+currentUser.id)||'{}');
+      stored.hash='';stored.enabled=true;
+      localStorage.setItem('skynote_pc_'+currentUser.id,JSON.stringify(stored));
+    }
+  }catch(e){
+    $('forgotMsg').style.color='var(--red)';
+    $('forgotMsg').textContent=e.message||'Failed to send email.';
+    $('forgotBtn').textContent='Send reset email';$('forgotBtn').disabled=false;
+  }
+}
+
 function launchPasscode(mode){
   pcMode=mode;pcBuffer='';
   $('pcSub').textContent=username?'Welcome back, '+username:'Enter your passcode';
