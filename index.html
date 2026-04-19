@@ -682,8 +682,17 @@ async function resendConfirm(){
 async function afterAuth(user){
   currentUser=user;
   username=user.user_metadata?.username||user.email.split('@')[0];
-  // Remember this device has signed up — next time show sign in not sign up
   localStorage.setItem('skynote_last_email',user.email);
+  // Manually save session tokens for reliable restore
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
+      localStorage.setItem('skynote_session',JSON.stringify({
+        access_token:session.access_token,
+        refresh_token:session.refresh_token
+      }));
+    }
+  }catch(ex){}
   await loadNotesFromDB();
   const stored=JSON.parse(localStorage.getItem('skynote_pc_'+user.id)||'{}');
   pcEnabled=stored.enabled!==false;
@@ -702,6 +711,7 @@ async function afterAuth(user){
 async function signOut(){
   const email=currentUser?.email||'';
   await sb.auth.signOut();
+  localStorage.removeItem('skynote_session');
   currentUser=null;username='';notes=[];
   // keep email in field so they can sign back in easily
   $('authEmail').value=email;$('authPw').value='';
@@ -1554,15 +1564,33 @@ async function doFind(){
 // ── BOOT ──
 (async()=>{
   try{
-    const {data:{session}}=await sb.auth.getSession();
+    // Try Supabase session first
+    const {data:{session},error}=await sb.auth.getSession();
     if(session?.user){
       await afterAuth(session.user);
-    } else {
-      const lastEmail=localStorage.getItem('skynote_last_email');
-      if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
-      showScr('sAuth');
+      return;
     }
+    // Supabase session missing — try manual restore
+    const saved=localStorage.getItem('skynote_session');
+    if(saved){
+      try{
+        const {access_token,refresh_token}=JSON.parse(saved);
+        if(access_token&&refresh_token){
+          const {data:refreshed,error:re}=await sb.auth.setSession({access_token,refresh_token});
+          if(refreshed?.session?.user){
+            await afterAuth(refreshed.session.user);
+            return;
+          }
+        }
+      }catch(ex){localStorage.removeItem('skynote_session');}
+    }
+    // No session — show sign in
+    const lastEmail=localStorage.getItem('skynote_last_email');
+    if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
+    showScr('sAuth');
   }catch(e){
+    const lastEmail=localStorage.getItem('skynote_last_email');
+    if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
     showScr('sAuth');
   }
 })();
