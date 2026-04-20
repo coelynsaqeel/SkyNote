@@ -67,8 +67,8 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
 .pc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px}
 .pc-key{padding:18px 0;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);font-size:22px;font-weight:500;color:var(--text);cursor:pointer;text-align:center;font-family:var(--font);user-select:none;transition:background .1s,transform .1s}
 .pc-key:active{background:var(--border);transform:scale(.94)}
-.pc-key.del{font-size:16px;color:var(--text2)}
-.pc-key.empty{border:none;background:transparent;pointer-events:none}
+.pc-key.del{font-size:20px;color:var(--text2);font-weight:400}
+.pc-key.empty{border:1px solid transparent;background:transparent;pointer-events:none}
 .pc-err{font-size:12px;color:var(--red);font-family:var(--mono);margin-top:14px;min-height:16px;text-align:center}
 
 /* HOME */
@@ -349,18 +349,19 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
   </div>
 </div>
 
-<!-- FORGOT PASSCODE -->
+<!-- FORGOT PASSCODE — verify account password to reset app passcode -->
 <div class="scr" id="sForgot">
   <div class="auth-wrap">
     <div style="font-size:32px;margin-bottom:12px">🔑</div>
     <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-.5px;margin-bottom:8px">Reset passcode</div>
-    <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:28px">
-      We will send a reset link to your email.<br/>After clicking it, sign in again and set a new passcode.
+    <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:24px">
+      Enter your account password to verify it's you.<br/>Then set a new app passcode.
     </div>
-    <button class="auth-btn" id="forgotBtn" onclick="sendPasscodeReset()">Send reset email</button>
-    <div id="forgotMsg" style="font-size:12px;text-align:center;margin-top:14px;min-height:16px;font-family:var(--mono)"></div>
-    <div style="margin-top:20px;text-align:center">
-      <span onclick="_rawShow('sPasscode')" style="font-size:13px;color:var(--text2);font-family:var(--mono);cursor:pointer">← Back to passcode</span>
+    <input class="auth-field" id="forgotPw" type="password" placeholder="Account password"/>
+    <button class="auth-btn" id="forgotBtn" onclick="verifyAndResetPasscode()">Verify &amp; reset</button>
+    <div id="forgotMsg" style="font-size:12px;text-align:center;margin-top:12px;min-height:16px;font-family:var(--mono)"></div>
+    <div style="margin-top:16px;text-align:center">
+      <span onclick="_rawShow('sPasscode')" style="font-size:13px;color:var(--text2);font-family:var(--mono);cursor:pointer">← Back</span>
     </div>
   </div>
 </div>
@@ -857,33 +858,40 @@ function savePcPrefs(){
 
 // ── PASSCODE ──
 function forgotPasscode(){
-  $('forgotMsg').textContent='';
-  $('forgotBtn').textContent='Send reset email';
-  $('forgotBtn').disabled=false;
+  const el=$('forgotPw');if(el)el.value='';
+  const msg=$('forgotMsg');if(msg)msg.textContent='';
+  const btn=$('forgotBtn');if(btn){btn.textContent='Verify & reset';btn.disabled=false;}
   _rawShow('sForgot');
 }
 
-async function sendPasscodeReset(){
+async function verifyAndResetPasscode(){
+  const pw=$('forgotPw').value;
+  const msg=$('forgotMsg');
+  const btn=$('forgotBtn');
+  if(!pw){msg.style.color='var(--red)';msg.textContent='Enter your account password';return;}
   const email=currentUser?.email||localStorage.getItem('skynote_last_email');
-  if(!email){$('forgotMsg').style.color='var(--red)';$('forgotMsg').textContent='No email found. Please sign in first.';return;}
-  $('forgotBtn').innerHTML='<div class="spin"></div>';$('forgotBtn').disabled=true;
+  if(!email){msg.style.color='var(--red)';msg.textContent='Could not find your email. Please sign out and sign in again.';return;}
+  btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
   try{
-    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://coelynsaqeel.github.io/SkyNote/'});
+    // Re-authenticate with account password to verify identity
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
     if(error)throw error;
-    $('forgotMsg').style.color='var(--green)';
-    $('forgotMsg').textContent='Reset email sent to '+email+'! Check your inbox.';
-    $('forgotBtn').textContent='Email sent ✓';
-    // After reset, clear local passcode so they can set new one on next login
+    // Clear old passcode
+    pcHash='';pcEnabled=true;pcBuffer='';
     if(currentUser){
-      pcHash='';pcEnabled=true;
       const stored=JSON.parse(localStorage.getItem('skynote_pc_'+currentUser.id)||'{}');
       stored.hash='';stored.enabled=true;
       localStorage.setItem('skynote_pc_'+currentUser.id,JSON.stringify(stored));
     }
+    msg.style.color='var(--green)';
+    msg.textContent='Verified! Set your new passcode.';
+    btn.textContent='Verify & reset';btn.disabled=false;
+    // Go set new passcode
+    setTimeout(()=>launchSetPasscode(false),800);
   }catch(e){
-    $('forgotMsg').style.color='var(--red)';
-    $('forgotMsg').textContent=e.message||'Failed to send email.';
-    $('forgotBtn').textContent='Send reset email';$('forgotBtn').disabled=false;
+    msg.style.color='var(--red)';
+    msg.textContent='Wrong password. Try again.';
+    btn.textContent='Verify & reset';btn.disabled=false;
   }
 }
 
