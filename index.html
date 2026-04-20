@@ -589,7 +589,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON,{
     storage:window.localStorage,
     autoRefreshToken:true,
     persistSession:true,
-    detectSessionInUrl:false
+    detectSessionInUrl:true
   }
 });
 
@@ -620,50 +620,64 @@ function fileToBase64(file){
 }
 
 // ── SCREENS ──
-// Screen history for back button
+// Screens excluded from back-nav history (auth/passcode flows)
+const NO_HISTORY=['sAuth','sConfirm','sPasscode','sSetPasscode','sForgot'];
 let scrHistory=[];
 
 function showScr(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $(id).classList.add('on');
-  // Push to browser history so phone back button works
-  if(id!=='sAuth'){
+  if(!NO_HISTORY.includes(id)){
     history.pushState({scr:id},'',location.href);
-    scrHistory.push(id);
+    // Avoid duplicating the same screen twice in a row
+    if(!scrHistory.length||scrHistory[scrHistory.length-1]!==id){
+      scrHistory.push(id);
+    }
   }
 }
+
 function closeSheet(){
   const sa=$('sheetArea');
   if(sa)sa.innerHTML='';
 }
+
 function goHome(){
   applyScreenshotBlock(false);
   closeSheet();
-  // Clear history stack — home is the base
-  scrHistory=[];
+  scrHistory=['sHome'];
   history.replaceState({scr:'sHome'},'',location.href);
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $('sHome').classList.add('on');
   renderNotes();
 }
 
-// Phone back button handler
-window.addEventListener('popstate',e=>{
-  // If sheet is open, close it first
-  const sa=$('sheetArea');
-  if(sa&&sa.innerHTML.trim()){closeSheet();history.pushState({scr:getCurrentScr()},'',location.href);return;}
-  // Go to previous screen
-  scrHistory.pop(); // remove current
-  const prev=scrHistory.length?scrHistory[scrHistory.length-1]:'sHome';
-  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
-  $(prev).classList.add('on');
-  if(prev==='sHome'){renderNotes();applyScreenshotBlock(false);}
-});
-
 function getCurrentScr(){
   const on=document.querySelector('.scr.on');
   return on?on.id:'sHome';
 }
+
+// Phone hardware back button
+window.addEventListener('popstate',()=>{
+  // Close sheet first if open
+  const sa=$('sheetArea');
+  if(sa&&sa.innerHTML.trim()){
+    closeSheet();
+    history.pushState({scr:getCurrentScr()},'',location.href);
+    return;
+  }
+  // Go back in app history
+  if(scrHistory.length>1){
+    scrHistory.pop();
+    const prev=scrHistory[scrHistory.length-1];
+    document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+    $(prev).classList.add('on');
+    if(prev==='sHome'){renderNotes();applyScreenshotBlock(false);}
+  } else {
+    // Nothing left — stay on home
+    goHome();
+    history.pushState({scr:'sHome'},'',location.href);
+  }
+});
 function goProfile(){
   $('profIn').value=username;
   $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
@@ -849,7 +863,7 @@ async function sendPasscodeReset(){
   if(!email){$('forgotMsg').style.color='var(--red)';$('forgotMsg').textContent='No email found. Please sign in first.';return;}
   $('forgotBtn').innerHTML='<div class="spin"></div>';$('forgotBtn').disabled=true;
   try{
-    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://coelynsaqeel.github.io/SkyNote/'});
     if(error)throw error;
     $('forgotMsg').style.color='var(--green)';
     $('forgotMsg').textContent='Reset email sent to '+email+'! Check your inbox.';
@@ -1654,6 +1668,23 @@ async function doFind(){
 // ── BOOT ──
 (async()=>{
   try{
+    // Handle password reset redirect (Supabase puts token in URL hash)
+    const hash=window.location.hash;
+    if(hash&&hash.includes('type=recovery')){
+      // Clear hash from URL cleanly
+      history.replaceState(null,'',location.pathname);
+      // Session is automatically set by Supabase from the hash
+      await new Promise(r=>setTimeout(r,500));
+      const {data:{session:recSession}}=await sb.auth.getSession();
+      if(recSession?.user){
+        await afterAuth(recSession.user);
+        // Clear old passcode — they need to set a new one
+        pcHash='';pcEnabled=true;
+        savePcPrefs();
+        launchSetPasscode(false);
+        return;
+      }
+    }
     // Try Supabase session first
     const {data:{session},error}=await sb.auth.getSession();
     if(session?.user){
