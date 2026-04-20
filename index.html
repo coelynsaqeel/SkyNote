@@ -326,7 +326,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:28px" id="confirmMsg">
       We sent a confirmation link to your email.<br/>Open it then come back and sign in.
     </div>
-    <button class="auth-btn" onclick="switchAuthTab('in');showScr('sAuth')">Go to sign in</button>
+    <button class="auth-btn" onclick="switchAuthTab('in');_rawShow('sAuth')">Go to sign in</button>
     <div style="font-size:11px;color:var(--text3);font-family:var(--mono);text-align:center;margin-top:16px;cursor:pointer" onclick="resendConfirm()">
       Didn't get it? Tap to resend
     </div>
@@ -360,7 +360,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <button class="auth-btn" id="forgotBtn" onclick="sendPasscodeReset()">Send reset email</button>
     <div id="forgotMsg" style="font-size:12px;text-align:center;margin-top:14px;min-height:16px;font-family:var(--mono)"></div>
     <div style="margin-top:20px;text-align:center">
-      <span onclick="showScr('sPasscode')" style="font-size:13px;color:var(--text2);font-family:var(--mono);cursor:pointer">← Back to passcode</span>
+      <span onclick="_rawShow('sPasscode')" style="font-size:13px;color:var(--text2);font-family:var(--mono);cursor:pointer">← Back to passcode</span>
     </div>
   </div>
 </div>
@@ -620,19 +620,23 @@ function fileToBase64(file){
 }
 
 // ── SCREENS ──
-// Screens excluded from back-nav history (auth/passcode flows)
-const NO_HISTORY=['sAuth','sConfirm','sPasscode','sSetPasscode','sForgot'];
-let scrHistory=[];
+// Auth/passcode screens never go into back-nav stack
+const SKIP_NAV=['sAuth','sConfirm','sPasscode','sSetPasscode','sForgot'];
+// Our own nav stack — only real app screens
+let navStack=[];
 
-function showScr(id){
+function _rawShow(id){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $(id).classList.add('on');
-  if(!NO_HISTORY.includes(id)){
-    history.pushState({scr:id},'',location.href);
-    // Avoid duplicating the same screen twice in a row
-    if(!scrHistory.length||scrHistory[scrHistory.length-1]!==id){
-      scrHistory.push(id);
-    }
+}
+
+function showScr(id){
+  _rawShow(id);
+  if(SKIP_NAV.includes(id)) return;
+  // Push one dummy history entry so popstate fires on back press
+  history.pushState({n:navStack.length},'',location.href);
+  if(!navStack.length||navStack[navStack.length-1]!==id){
+    navStack.push(id);
   }
 }
 
@@ -644,38 +648,39 @@ function closeSheet(){
 function goHome(){
   applyScreenshotBlock(false);
   closeSheet();
-  scrHistory=['sHome'];
-  history.replaceState({scr:'sHome'},'',location.href);
-  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
-  $('sHome').classList.add('on');
+  navStack=['sHome'];
+  _rawShow('sHome');
   renderNotes();
+  // Replace current history entry
+  history.replaceState({n:0},'',location.href);
 }
 
-function getCurrentScr(){
-  const on=document.querySelector('.scr.on');
-  return on?on.id:'sHome';
-}
-
-// Phone hardware back button
+// Phone hardware back — fires BEFORE the browser pops the state
 window.addEventListener('popstate',()=>{
-  // Close sheet first if open
+  // 1. Close sheet if open
   const sa=$('sheetArea');
   if(sa&&sa.innerHTML.trim()){
     closeSheet();
-    history.pushState({scr:getCurrentScr()},'',location.href);
+    history.pushState({n:navStack.length},'',location.href);
     return;
   }
-  // Go back in app history
-  if(scrHistory.length>1){
-    scrHistory.pop();
-    const prev=scrHistory[scrHistory.length-1];
-    document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
-    $(prev).classList.add('on');
-    if(prev==='sHome'){renderNotes();applyScreenshotBlock(false);}
-  } else {
-    // Nothing left — stay on home
+  // 2. Never allow going back to a passcode/auth screen
+  //    Check what's currently showing
+  const cur=document.querySelector('.scr.on');
+  if(cur&&SKIP_NAV.includes(cur.id)){
+    // Force stay on home
     goHome();
-    history.pushState({scr:'sHome'},'',location.href);
+    return;
+  }
+  // 3. Go to previous real screen
+  if(navStack.length>1){
+    navStack.pop();
+    const prev=navStack[navStack.length-1];
+    _rawShow(prev);
+    if(prev==='sHome'){renderNotes();applyScreenshotBlock(false);}
+    history.pushState({n:navStack.length},'',location.href);
+  } else {
+    // At home — let phone exit app naturally (don't push)
   }
 });
 function goProfile(){
@@ -710,7 +715,7 @@ async function doAuth(){
         if(error.message.toLowerCase().includes('confirm')||error.message.toLowerCase().includes('not confirmed')){
           $('confirmMsg').innerHTML='Your email isn\'t confirmed yet.<br/>Check your inbox for the link we sent to<br/><b>'+email+'</b>';
           $('confirmErr').textContent='';
-          showScr('sConfirm');
+          _rawShow('sConfirm');
           $('authBtn').innerHTML='Sign in';$('authBtn').disabled=false;
           return;
         }
@@ -725,7 +730,7 @@ async function doAuth(){
         // email confirmation required
         $('confirmMsg').innerHTML='We sent a confirmation link to<br/><b>'+email+'</b><br/><br/>Open it then come back and sign in.';
         $('confirmErr').textContent='';
-        showScr('sConfirm');
+        _rawShow('sConfirm');
         $('authBtn').innerHTML='Create account';$('authBtn').disabled=false;
         return;
       }
@@ -789,15 +794,15 @@ async function signOut(){
   // keep email in field so they can sign back in easily
   $('authEmail').value=email;$('authPw').value='';
   $('authErr').textContent='';
-  switchAuthTab('in'); // always go to sign in, not sign up
-  showScr('sAuth');
+  switchAuthTab('in');
+  _rawShow('sAuth');
 }
 
 // ── DB ──
 async function loadNotesFromDB(){
   if(!currentUser)return;
   const {data,error}=await sb.from('notes').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
-  if(error){console.warn('Load error:',error.message);notes=[];return;}
+  if(error){notes=[];return;}
   notes=(data||[]).map(r=>({
     id:r.id,title:r.title||'',body:r.body||'',
     locked:r.locked||false,
@@ -812,7 +817,7 @@ async function loadNotesFromDB(){
 }
 
 async function saveNoteToDB(n){
-  if(!currentUser){console.warn('No user');return;}
+  if(!currentUser){return;}
   const atts=noteAttachments[n.id]||[];
   const row={
     user_id:currentUser.id,
@@ -836,13 +841,13 @@ async function saveNoteToDB(n){
       if(error)throw error;
       if(data){n.id=data.id;noteAttachments[data.id]=atts;}
     }
-  }catch(e){console.error('Save error:',e.message);}
+  }catch(e){}
 }
 
 async function deleteNoteFromDB(id){
   if(!currentUser)return;
   const isUUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  if(isUUID){const {error}=await sb.from('notes').delete().eq('id',id);if(error)console.error(error.message);}
+  if(isUUID){const {error}=await sb.from('notes').delete().eq('id',id);}
 }
 
 function savePcPrefs(){
@@ -855,7 +860,7 @@ function forgotPasscode(){
   $('forgotMsg').textContent='';
   $('forgotBtn').textContent='Send reset email';
   $('forgotBtn').disabled=false;
-  showScr('sForgot');
+  _rawShow('sForgot');
 }
 
 async function sendPasscodeReset(){
@@ -888,7 +893,7 @@ function launchPasscode(mode){
   $('pcTitle').textContent='Enter passcode';
   $('pcErr').textContent='';
   renderPcDots('pcDots',0);renderPcGrid('pcGrid',handlePcKey);
-  showScr('sPasscode');
+  _rawShow('sPasscode');
 }
 
 function launchSetPasscode(fromProfile){
@@ -899,7 +904,7 @@ function launchSetPasscode(fromProfile){
   $('setPcTitle').textContent='Create passcode ('+pcLength+' digits)';
   $('setPcErr').textContent='';
   renderPcDots('setPcDots',0);renderPcGrid('setPcGrid',handleSetPcKey);
-  showScr('sSetPasscode');
+  _rawShow('sSetPasscode');
 }
 
 function goChangePasscode(){launchSetPasscode(true);}
@@ -1708,11 +1713,11 @@ async function doFind(){
     // No session — show sign in
     const lastEmail=localStorage.getItem('skynote_last_email');
     if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
-    showScr('sAuth');
+    _rawShow('sAuth');
   }catch(e){
     const lastEmail=localStorage.getItem('skynote_last_email');
     if(lastEmail){$('authEmail').value=lastEmail;switchAuthTab('in');}
-    showScr('sAuth');
+    _rawShow('sAuth');
   }
 })();
 
