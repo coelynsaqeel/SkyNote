@@ -349,19 +349,37 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
   </div>
 </div>
 
-<!-- FORGOT PASSCODE — verify account password to reset app passcode -->
+<!-- FORGOT PASSCODE — Step 1: send OTP -->
 <div class="scr" id="sForgot">
   <div class="auth-wrap">
     <div style="font-size:32px;margin-bottom:12px">🔑</div>
     <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-.5px;margin-bottom:8px">Reset passcode</div>
-    <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:24px">
-      Enter your account password to verify it's you.<br/>Then set a new app passcode.
+    <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:24px" id="forgotDesc">
+      We'll send a 6-digit code to your email.<br/>Enter it here to reset your passcode.
     </div>
-    <input class="auth-field" id="forgotPw" type="password" placeholder="Account password"/>
-    <button class="auth-btn" id="forgotBtn" onclick="verifyAndResetPasscode()">Verify &amp; reset</button>
+    <button class="auth-btn" id="forgotBtn" onclick="sendOTP()">Send code to my email</button>
     <div id="forgotMsg" style="font-size:12px;text-align:center;margin-top:12px;min-height:16px;font-family:var(--mono)"></div>
     <div style="margin-top:16px;text-align:center">
       <span onclick="_rawShow('sPasscode')" style="font-size:13px;color:var(--text2);font-family:var(--mono);cursor:pointer">← Back</span>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSCODE — Step 2: enter OTP -->
+<div class="scr" id="sOTP">
+  <div class="auth-wrap">
+    <div style="font-size:32px;margin-bottom:12px">📬</div>
+    <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-.5px;margin-bottom:8px">Enter code</div>
+    <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:24px" id="otpDesc">
+      Check your email and enter the 6-digit code below.
+    </div>
+    <input class="auth-field" id="otpCode" type="number" placeholder="6-digit code" maxlength="6"
+      style="letter-spacing:8px;font-size:22px;text-align:center;font-family:var(--mono)"/>
+    <button class="auth-btn" id="otpBtn" onclick="verifyOTP()">Verify code</button>
+    <div id="otpMsg" style="font-size:12px;text-align:center;margin-top:12px;min-height:16px;font-family:var(--mono)"></div>
+    <div style="margin-top:16px;display:flex;justify-content:space-between">
+      <span onclick="_rawShow('sForgot')" style="font-size:13px;color:var(--text2);font-family:var(--mono);cursor:pointer">← Back</span>
+      <span onclick="sendOTP(true)" style="font-size:13px;color:var(--blue);font-family:var(--mono);cursor:pointer">Resend code</span>
     </div>
   </div>
 </div>
@@ -622,7 +640,7 @@ function fileToBase64(file){
 
 // ── SCREENS ──
 // Auth/passcode screens never go into back-nav stack
-const SKIP_NAV=['sAuth','sConfirm','sPasscode','sSetPasscode','sForgot'];
+const SKIP_NAV=['sAuth','sConfirm','sPasscode','sSetPasscode','sForgot','sOTP'];
 // Our own nav stack — only real app screens
 let navStack=[];
 
@@ -858,25 +876,62 @@ function savePcPrefs(){
 
 // ── PASSCODE ──
 function forgotPasscode(){
-  const el=$('forgotPw');if(el)el.value='';
   const msg=$('forgotMsg');if(msg)msg.textContent='';
-  const btn=$('forgotBtn');if(btn){btn.textContent='Verify & reset';btn.disabled=false;}
+  const btn=$('forgotBtn');if(btn){btn.textContent='Send code to my email';btn.disabled=false;}
   _rawShow('sForgot');
 }
 
-async function verifyAndResetPasscode(){
-  const pw=$('forgotPw').value;
+async function sendOTP(isResend){
+  const email=currentUser?.email||localStorage.getItem('skynote_last_email');
   const msg=$('forgotMsg');
   const btn=$('forgotBtn');
-  if(!pw){msg.style.color='var(--red)';msg.textContent='Enter your account password';return;}
+  if(!email){
+    msg.style.color='var(--red)';
+    msg.textContent='No email found. Please sign out and sign in again.';
+    return;
+  }
+  if(btn){btn.innerHTML='<div class="spin"></div>';btn.disabled=true;}
+  try{
+    // Send OTP via Supabase email OTP
+    const {error}=await sb.auth.signInWithOtp({
+      email,
+      options:{shouldCreateUser:false}
+    });
+    if(error)throw error;
+    // Move to OTP entry screen
+    const otpDesc=$('otpDesc');
+    if(otpDesc)otpDesc.textContent='A 6-digit code was sent to '+email+'. Enter it below.';
+    const otpMsg=$('otpMsg');if(otpMsg)otpMsg.textContent='';
+    const otpIn=$('otpCode');if(otpIn)otpIn.value='';
+    const otpBtn=$('otpBtn');if(otpBtn){otpBtn.textContent='Verify code';otpBtn.disabled=false;}
+    if(isResend){
+      const otpMsg=$('otpMsg');
+      if(otpMsg){otpMsg.style.color='var(--green)';otpMsg.textContent='Code resent!';}
+    } else {
+      _rawShow('sOTP');
+    }
+  }catch(e){
+    if(msg){msg.style.color='var(--red)';msg.textContent=e.message||'Failed to send code.';}
+  }finally{
+    if(btn){btn.textContent='Send code to my email';btn.disabled=false;}
+  }
+}
+
+async function verifyOTP(){
+  const code=($('otpCode').value||'').trim();
+  const msg=$('otpMsg');
+  const btn=$('otpBtn');
   const email=currentUser?.email||localStorage.getItem('skynote_last_email');
-  if(!email){msg.style.color='var(--red)';msg.textContent='Could not find your email. Please sign out and sign in again.';return;}
+  if(!code||code.length<6){msg.style.color='var(--red)';msg.textContent='Enter the 6-digit code';return;}
+  if(!email){msg.style.color='var(--red)';msg.textContent='Email not found. Please restart the app.';return;}
   btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
   try{
-    // Re-authenticate with account password to verify identity
-    const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+    // Verify the OTP token
+    const {data,error}=await sb.auth.verifyOtp({email,token:code,type:'email'});
     if(error)throw error;
-    // Clear old passcode
+    // OTP verified — update currentUser if needed
+    if(data?.user)currentUser=data.user;
+    // Clear old passcode hash
     pcHash='';pcEnabled=true;pcBuffer='';
     if(currentUser){
       const stored=JSON.parse(localStorage.getItem('skynote_pc_'+currentUser.id)||'{}');
@@ -884,14 +939,14 @@ async function verifyAndResetPasscode(){
       localStorage.setItem('skynote_pc_'+currentUser.id,JSON.stringify(stored));
     }
     msg.style.color='var(--green)';
-    msg.textContent='Verified! Set your new passcode.';
-    btn.textContent='Verify & reset';btn.disabled=false;
-    // Go set new passcode
-    setTimeout(()=>launchSetPasscode(false),800);
+    msg.textContent='Verified! Set your new passcode now.';
+    btn.textContent='Verify code';btn.disabled=false;
+    // Go set new passcode after short delay
+    setTimeout(()=>launchSetPasscode(false),700);
   }catch(e){
     msg.style.color='var(--red)';
-    msg.textContent='Wrong password. Try again.';
-    btn.textContent='Verify & reset';btn.disabled=false;
+    msg.textContent='Invalid or expired code. Try again.';
+    btn.textContent='Verify code';btn.disabled=false;
   }
 }
 
