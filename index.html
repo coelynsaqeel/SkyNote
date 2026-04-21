@@ -355,7 +355,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <div style="font-size:32px;margin-bottom:12px">🔑</div>
     <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-.5px;margin-bottom:8px">Reset passcode</div>
     <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:24px" id="forgotDesc">
-      We'll send a 6-digit code to your email.<br/>Enter it here to reset your passcode.
+      We'll send a code to your email.<br/>Enter it here to reset your passcode.
     </div>
     <button class="auth-btn" id="forgotBtn" onclick="sendOTP()">Send code to my email</button>
     <div id="forgotMsg" style="font-size:12px;text-align:center;margin-top:12px;min-height:16px;font-family:var(--mono)"></div>
@@ -371,10 +371,10 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <div style="font-size:32px;margin-bottom:12px">📬</div>
     <div style="font-size:22px;font-weight:500;color:var(--text);letter-spacing:-.5px;margin-bottom:8px">Enter code</div>
     <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:24px" id="otpDesc">
-      Check your email and enter the 6-digit code below.
+      Check your email and enter the code below.
     </div>
     <input class="auth-field" id="otpCode" type="text" inputmode="numeric" pattern="[0-9]*"
-      placeholder="6-digit code" maxlength="6"
+      placeholder="" 
       style="letter-spacing:10px;font-size:24px;text-align:center;font-family:var(--mono)"/>
     <button class="auth-btn" id="otpBtn" onclick="verifyOTP()">Verify code</button>
     <div id="otpMsg" style="font-size:12px;text-align:center;margin-top:12px;min-height:16px;font-family:var(--mono)"></div>
@@ -468,7 +468,7 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round"><path d="M10 4l-4 4 4 4"/></svg>
     </button>
     <input class="ed-title-in" id="edT" placeholder="Title"/>
-    <button class="efbtn pri" style="flex-shrink:0;padding:8px 16px" onclick="saveHome()">Save</button>
+    <button class="efbtn pri" style="flex-shrink:0;padding:8px 16px" id="saveBtn" onclick="saveNote()">Save</button>
   </div>
   <div class="ed-toolbar" style="justify-content:space-between;align-items:center">
     <button class="tb-btn" id="tb-fmt-toggle" onclick="toggleFmtBar()" style="font-size:17px">✏️</button>
@@ -904,7 +904,7 @@ async function sendOTP(isResend){
     if(error)throw error;
     // Move to OTP entry screen
     const otpDesc=$('otpDesc');
-    if(otpDesc)otpDesc.textContent='A 6-digit code was sent to '+email+'. Enter it below.';
+    if(otpDesc)otpDesc.textContent='A code was sent to '+email+'. Enter it below.';
     const otpMsg=$('otpMsg');if(otpMsg)otpMsg.textContent='';
     const otpIn=$('otpCode');if(otpIn)otpIn.value='';
     const otpBtn=$('otpBtn');if(otpBtn){otpBtn.textContent='Verify code';otpBtn.disabled=false;}
@@ -926,7 +926,7 @@ async function verifyOTP(){
   const msg=$('otpMsg');
   const btn=$('otpBtn');
   const email=currentUser?.email||localStorage.getItem('skynote_last_email');
-  if(!code||code.length<6){msg.style.color='var(--red)';msg.textContent='Enter the 6-digit code';return;}
+  if(!code){msg.style.color='var(--red)';msg.textContent='Enter the code from your email';return;}
   if(!email){msg.style.color='var(--red)';msg.textContent='Email not found. Please restart the app.';return;}
   btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
   try{
@@ -1638,6 +1638,24 @@ function loadEd(id){
   if(!noteAttachments[id])noteAttachments[id]=n.attachments||[];
   renderAttachBar();
   setNoteStyle(n.noteStyle||'vertical-plain');
+}
+
+async function saveNote(){
+  const n=notes.find(x=>x.id===editing);
+  if(n){
+    n.title=$('edT').value.trim()||'Untitled';
+    n.body=$('edContent').innerHTML;
+    n.attachments=noteAttachments[editing]||[];
+    n.noteStyle=currentScrollMode+'-'+currentLineStyle;
+    await saveNoteToDB(n);
+  }
+  // Show saved toast
+  const btn=$('saveBtn');
+  if(btn){
+    btn.textContent='Saved ✓';
+    btn.style.background='var(--green)';
+    setTimeout(()=>{btn.textContent='Save';btn.style.background='';},1500);
+  }
 }
 
 async function saveHome(){
