@@ -373,8 +373,9 @@ body{font-family:var(--font);display:flex;justify-content:center;align-items:fle
     <div style="font-size:13px;color:var(--text3);font-family:var(--mono);text-align:center;line-height:1.7;margin-bottom:24px" id="otpDesc">
       Check your email and enter the 6-digit code below.
     </div>
-    <input class="auth-field" id="otpCode" type="number" placeholder="6-digit code" maxlength="6"
-      style="letter-spacing:8px;font-size:22px;text-align:center;font-family:var(--mono)"/>
+    <input class="auth-field" id="otpCode" type="text" inputmode="numeric" pattern="[0-9]*"
+      placeholder="6-digit code" maxlength="6"
+      style="letter-spacing:10px;font-size:24px;text-align:center;font-family:var(--mono)"/>
     <button class="auth-btn" id="otpBtn" onclick="verifyOTP()">Verify code</button>
     <div id="otpMsg" style="font-size:12px;text-align:center;margin-top:12px;min-height:16px;font-family:var(--mono)"></div>
     <div style="margin-top:16px;display:flex;justify-content:space-between">
@@ -895,7 +896,10 @@ async function sendOTP(isResend){
     // Send OTP via Supabase email OTP
     const {error}=await sb.auth.signInWithOtp({
       email,
-      options:{shouldCreateUser:false}
+      options:{
+        shouldCreateUser:false,
+        emailRedirectTo:null
+      }
     });
     if(error)throw error;
     // Move to OTP entry screen
@@ -918,7 +922,7 @@ async function sendOTP(isResend){
 }
 
 async function verifyOTP(){
-  const code=($('otpCode').value||'').trim();
+  const code=($('otpCode').value||'').replace(/\D/g,'').trim();
   const msg=$('otpMsg');
   const btn=$('otpBtn');
   const email=currentUser?.email||localStorage.getItem('skynote_last_email');
@@ -926,11 +930,15 @@ async function verifyOTP(){
   if(!email){msg.style.color='var(--red)';msg.textContent='Email not found. Please restart the app.';return;}
   btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
   try{
-    // Verify the OTP token
-    const {data,error}=await sb.auth.verifyOtp({email,token:code,type:'email'});
-    if(error)throw error;
-    // OTP verified — update currentUser if needed
-    if(data?.user)currentUser=data.user;
+    // Try 'email' type first (correct for signInWithOtp flow)
+    let result=await sb.auth.verifyOtp({email,token:code,type:'email'});
+    // If that fails try 'magiclink' (older Supabase versions)
+    if(result.error){
+      result=await sb.auth.verifyOtp({email,token:code,type:'magiclink'});
+    }
+    if(result.error)throw result.error;
+    // OTP verified — update currentUser
+    if(result.data?.user)currentUser=result.data.user;
     // Clear old passcode hash
     pcHash='';pcEnabled=true;pcBuffer='';
     if(currentUser){
@@ -939,9 +947,8 @@ async function verifyOTP(){
       localStorage.setItem('skynote_pc_'+currentUser.id,JSON.stringify(stored));
     }
     msg.style.color='var(--green)';
-    msg.textContent='Verified! Set your new passcode now.';
+    msg.textContent='Verified! Setting new passcode…';
     btn.textContent='Verify code';btn.disabled=false;
-    // Go set new passcode after short delay
     setTimeout(()=>launchSetPasscode(false),700);
   }catch(e){
     msg.style.color='var(--red)';
