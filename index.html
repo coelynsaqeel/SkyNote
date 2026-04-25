@@ -817,11 +817,10 @@ async function signOut(){
   localStorage.removeItem('skynote_session');
   localStorage.removeItem('skynote_uid');
   currentUser=null;username='';notes=[];
-  // keep email in field so they can sign back in easily
-  $('authEmail').value=email;$('authPw').value='';
-  $('authErr').textContent='';
+  try{const el=$('authEmail');if(el)el.value=email;}catch(e){}
+  try{const el=$('authPw');if(el)el.value='';}catch(e){}
+  try{const el=$('authErr');if(el)el.textContent='';}catch(e){}
   switchAuthTab('in');
-  const ae=$('authErr');if(ae)ae.textContent='';
   _rawShow('sAuth');
 }
 
@@ -1058,14 +1057,15 @@ async function handleSetPcKey(key){
 
 // ── PROFILE ──
 function updateProfileUI(){
-  $('profNm').textContent=username||'—';
-  $('profEmail').textContent=currentUser?.email||'—';
+  const safe=(id,fn)=>{try{const el=$(id);if(el)fn(el);}catch(e){}};
+  safe('profNm',el=>el.textContent=username||'—');
+  safe('profEmail',el=>el.textContent=currentUser?.email||'—');
   const ini=(username||'SK').slice(0,2).toUpperCase();
-  $('avTxt').textContent=ini;$('pInit').textContent=ini;
-  $('profIn').value=username;
-  $('setupUfVal').textContent=username;
-
-  $('noteCnt').textContent=notes.length+' note'+(notes.length!==1?'s':'');
+  safe('avTxt',el=>el.textContent=ini);
+  safe('pInit',el=>el.textContent=ini);
+  safe('profIn',el=>el.value=username);
+  safe('setupUfVal',el=>el.textContent=username);
+  safe('noteCnt',el=>el.textContent=notes.length+' note'+(notes.length!==1?'s':''));
 }
 
 function updatePcUI(){
@@ -1815,6 +1815,14 @@ async function doFind(){
     _rawShow('sAuth');
   }
 })();
+
+// ── GLOBAL ERROR HANDLER ──
+window.addEventListener('error',e=>{
+  if(e.message&&e.message.includes('null'))e.preventDefault();
+});
+window.addEventListener('unhandledrejection',e=>{
+  if(e.reason&&String(e.reason).includes('null'))e.preventDefault();
+});
 
 // ── SERVICE WORKER ──
 if('serviceWorker' in navigator){
