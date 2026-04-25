@@ -713,54 +713,60 @@ function goProfile(){
 let authMode='in';
 function switchAuthTab(m){
   authMode=m;
-  $('tabIn').className='auth-tab'+(m==='in'?' on':'');
-  $('tabUp').className='auth-tab'+(m==='up'?' on':'');
-  $('authBtn').textContent=m==='in'?'Sign in':'Create account';
-  $('authUser').style.display=m==='up'?'block':'none';
-  $('authErr').textContent='';
+  const ti=$('tabIn');if(ti)ti.className='auth-tab'+(m==='in'?' on':'');
+  const tu=$('tabUp');if(tu)tu.className='auth-tab'+(m==='up'?' on':'');
+  const ab=$('authBtn');if(ab)ab.textContent=m==='in'?'Sign in':'Create account';
+  const au=$('authUser');if(au)au.style.display=m==='up'?'block':'none';
+  const ae=$('authErr');if(ae)ae.textContent='';
 }
 
 async function doAuth(){
-  const email=$('authEmail').value.trim();
-  const pw=$('authPw').value;
+  const emailEl=$('authEmail');
+  const pwEl=$('authPw');
   const err=$('authErr');
-  if(!email||!pw){err.style.color='var(--red)';err.textContent='Please fill in all fields';return;}
-  $('authBtn').innerHTML='<div class="spin"></div>';
-  $('authBtn').disabled=true;
+  const btn=$('authBtn');
+  if(!emailEl||!pwEl)return;
+  const email=emailEl.value.trim();
+  const pw=pwEl.value;
+  if(!email||!pw){
+    if(err){err.style.color='var(--red)';err.textContent='Please fill in all fields';}
+    return;
+  }
+  if(btn){btn.innerHTML='<div class="spin"></div>';btn.disabled=true;}
+  if(err)err.textContent='';
   try{
     if(authMode==='in'){
       const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
       if(error){
-        // Give helpful message if email not confirmed
         if(error.message.toLowerCase().includes('confirm')||error.message.toLowerCase().includes('not confirmed')){
-          $('confirmMsg').innerHTML='Your email isn\'t confirmed yet.<br/>Check your inbox for the link we sent to<br/><b>'+email+'</b>';
-          $('confirmErr').textContent='';
+          const cm=$('confirmMsg');
+          if(cm)cm.innerHTML='Your email isn\'t confirmed yet.<br/>Check your inbox for the link we sent to<br/><b>'+email+'</b>';
+          const ce=$('confirmErr');if(ce)ce.textContent='';
           _rawShow('sConfirm');
-          $('authBtn').innerHTML='Sign in';$('authBtn').disabled=false;
+          if(btn){btn.innerHTML='Sign in';btn.disabled=false;}
           return;
         }
         throw error;
       }
       await afterAuth(data.user);
     } else {
-      const uname=$('authUser').value.trim()||email.split('@')[0];
+      const unEl=$('authUser');
+      const uname=(unEl?unEl.value.trim():'')||email.split('@')[0];
       const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{username:uname}}});
       if(error)throw error;
       if(data.user&&!data.session){
-        // email confirmation required
-        $('confirmMsg').innerHTML='We sent a confirmation link to<br/><b>'+email+'</b><br/><br/>Open it then come back and sign in.';
-        $('confirmErr').textContent='';
+        const cm=$('confirmMsg');
+        if(cm)cm.innerHTML='We sent a confirmation link to<br/><b>'+email+'</b><br/><br/>Open it then come back and sign in.';
+        const ce=$('confirmErr');if(ce)ce.textContent='';
         _rawShow('sConfirm');
-        $('authBtn').innerHTML='Create account';$('authBtn').disabled=false;
+        if(btn){btn.innerHTML='Create account';btn.disabled=false;}
         return;
       }
       await afterAuth(data.user);
     }
   }catch(e){
-    err.style.color='var(--red)';
-    err.textContent=e.message||'Something went wrong';
-    $('authBtn').innerHTML=authMode==='in'?'Sign in':'Create account';
-    $('authBtn').disabled=false;
+    if(err){err.style.color='var(--red)';err.textContent=e.message||'Something went wrong';}
+    if(btn){btn.innerHTML=authMode==='in'?'Sign in':'Create account';btn.disabled=false;}
   }
 }
 
@@ -799,7 +805,7 @@ async function afterAuth(user){
   if(isDark)$('phone').setAttribute('data-dark','');
   updateProfileUI();
   loadPfp();
-  const ab=$('authBtn');if(ab){ab.innerHTML=authMode==='in'?'Sign in':'Create account';ab.disabled=false;}
+  try{const ab=$('authBtn');if(ab){ab.innerHTML=authMode==='in'?'Sign in':'Create account';ab.disabled=false;}}catch(ex){}
   if(pcEnabled&&pcHash){launchPasscode('verify');}
   else if(pcEnabled&&!pcHash){launchSetPasscode(false);}
   else{goHome();}
@@ -815,6 +821,7 @@ async function signOut(){
   $('authEmail').value=email;$('authPw').value='';
   $('authErr').textContent='';
   switchAuthTab('in');
+  const ae=$('authErr');if(ae)ae.textContent='';
   _rawShow('sAuth');
 }
 
