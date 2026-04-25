@@ -1647,34 +1647,40 @@ function loadEd(id){
   setNoteStyle(n.noteStyle||'vertical-plain');
 }
 
-async function saveNote(){
+function collectNoteData(){
+  // Pull current editor state into the note object instantly
   const n=notes.find(x=>x.id===editing);
   if(n){
-    n.title=$('edT').value.trim()||'Untitled';
+    n.title=($('edT').value||'').trim()||'Untitled';
     n.body=$('edContent').innerHTML;
     n.attachments=noteAttachments[editing]||[];
     n.noteStyle=currentScrollMode+'-'+currentLineStyle;
-    await saveNoteToDB(n);
   }
-  // Show saved toast
+  return n;
+}
+
+function saveNote(){
+  const n=collectNoteData();
+  // Show feedback instantly — no waiting for network
   const btn=$('saveBtn');
   if(btn){
     btn.textContent='Saved ✓';
     btn.style.background='var(--green)';
-    setTimeout(()=>{btn.textContent='Save';btn.style.background='';},1500);
+    btn.style.color='#fff';
+    setTimeout(()=>{
+      if(btn){btn.textContent='Save';btn.style.background='';btn.style.color='';}
+    },1400);
   }
+  // Save to DB in background — don't block UI
+  if(n) saveNoteToDB(n).catch(()=>{});
 }
 
-async function saveHome(){
-  const n=notes.find(x=>x.id===editing);
-  if(n){
-    n.title=$('edT').value.trim()||'Untitled';
-    n.body=$('edContent').innerHTML;
-    n.attachments=noteAttachments[editing]||[];
-    n.noteStyle=currentScrollMode+'-'+currentLineStyle;
-    await saveNoteToDB(n);
-  }
+function saveHome(){
+  const n=collectNoteData();
+  // Navigate instantly
   goHome();
+  // Save in background after navigation
+  if(n) saveNoteToDB(n).catch(()=>{});
 }
 
 function confirmDelete(){
